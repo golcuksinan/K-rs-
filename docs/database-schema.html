@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kürsü - Veritabanı Şeması (ERD)</title>
+<style>
+  body {
+    margin: 0;
+    padding: 32px;
+    font-family: "Segoe UI", "Anthropic Sans", sans-serif;
+    background: #ffffff;
+    color: #111827;
+  }
+  h1 {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  p.subtitle {
+    color: #4b5563;
+    margin-top: 0;
+    margin-bottom: 24px;
+  }
+  #erd svg.erDiagram .divider path { stroke-opacity: 0.5; }
+  #erd svg.erDiagram .row-rect-odd path,
+  #erd svg.erDiagram .row-rect-odd rect,
+  #erd svg.erDiagram .row-rect-even path,
+  #erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+</style>
+</head>
+<body>
+
+<h1>Kürsü — Veritabanı Şeması</h1>
+<p class="subtitle">Öğrenci-hoca değerlendirme platformunun varlık-ilişki diyagramı (ERD)</p>
+
+<div id="erd"></div>
+
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: light)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#d1d5db' : '#4b5563',
+    textColor: dark ? '#f3f4f6' : '#111827',
+  },
+});
+const { svg } = await mermaid.render('erd-svg', `erDiagram
+  UNIVERSITY ||--o{ DEPARTMENT : has
+  DEPARTMENT ||--o{ COURSE : offers
+  COURSE ||--o{ COURSE_PROFESSOR : "has section"
+  PROFESSOR ||--o{ COURSE_PROFESSOR : teaches
+  COURSE_PROFESSOR ||--o{ REVIEW : receives
+  USER ||--o{ REVIEW : writes
+  USER ||--o{ REPORT : files
+  REVIEW ||--o{ REPORT : flagged_in
+
+  UNIVERSITY {
+    int id PK
+    string name
+    string city
+  }
+  DEPARTMENT {
+    int id PK
+    int university_id FK
+    string name
+  }
+  COURSE {
+    int id PK
+    int department_id FK
+    string name
+    string code
+  }
+  PROFESSOR {
+    int id PK
+    string full_name
+  }
+  COURSE_PROFESSOR {
+    int id PK
+    int course_id FK
+    int professor_id FK
+    string term
+  }
+  USER {
+    int id PK
+    string email
+    string password_hash
+    bool is_verified
+  }
+  REVIEW {
+    int id PK
+    int user_id FK
+    int course_professor_id FK
+    int teaching_score
+    int difficulty_score
+    int fairness_score
+    text comment
+    string status
+    datetime created_at
+  }
+  REPORT {
+    int id PK
+    int review_id FK
+    int reporter_id FK
+    string reason
+    string status
+    datetime created_at
+  }
+`);
+document.getElementById('erd').innerHTML = svg;
+
+document.querySelectorAll('#erd svg.erDiagram .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+
+document.querySelectorAll('#erd svg.erDiagram .row-rect-odd path, #erd svg.erDiagram .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>
+
+</body>
+</html>
