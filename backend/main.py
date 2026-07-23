@@ -7,5 +7,6 @@ app = FastAPI(title="Kürsü API")
 def health_check():
     return {"status": "ok"}
 
-from app.api import auth
+from app.api import auth, reviews
 app.include_router(auth.router)
+app.include_router(reviews.router)
