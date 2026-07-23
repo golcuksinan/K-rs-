@@ -66,7 +66,23 @@ def list_reviews(
     return query.order_by(Review.created_at.desc()).all()
 
 
-# ---------- 3. Review durumunu güncelle (sadece admin) ----------
+# ---------- 3. Bekleyen review'ları listele (sadece admin) ----------
+
+@router.get("/pending", response_model=list[ReviewResponse])
+def list_pending_reviews(
+    course_professor_id: Optional[int] = None,
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Review).filter(Review.status == "pending")
+
+    if course_professor_id is not None:
+        query = query.filter(Review.course_professor_id == course_professor_id)
+
+    return query.order_by(Review.created_at.asc()).all()
+
+
+# ---------- 4. Review durumunu güncelle (sadece admin) ----------
 
 @router.patch("/{review_id}/status", response_model=ReviewResponse)
 def update_review_status(
