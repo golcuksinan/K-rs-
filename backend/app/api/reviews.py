@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
 from app.models.review import Review
+from app.models.report import Report
 from app.models.course_professor import CourseProfessor
 from app.schemas.review import ReviewCreate, ReviewResponse, ReviewStatusUpdate, ReviewFullResponse, ReviewUpdate
 from app.api.deps import get_current_user, get_current_admin_user
@@ -167,3 +168,20 @@ def update_review_status(
     db.commit()
     db.refresh(review)
     return review
+
+@router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review bulunamadı")
+    if review.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu review'u silme yetkiniz yok")
+
+    db.query(Report).filter(Report.review_id == review_id).delete(synchronize_session=False)
+    db.delete(review)
+    db.commit()
+    return None
