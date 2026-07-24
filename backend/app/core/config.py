@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     EMAIL_PEPPER_KEY: str  # JWT SECRET_KEY'den tamamen farklı olmalı, asla rotate edilmemeli
     OTP_EXPIRE_MINUTES: int = 10
     AI_SERVICE_URL: str
+    HF_API_TOKEN: str
+    HF_MODEL_URL: str
+
     class Config:
         env_file = ".env"
 
