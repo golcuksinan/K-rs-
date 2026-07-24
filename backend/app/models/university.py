@@ -7,6 +7,7 @@ class University(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
+    short_name = Column(String, nullable=True)
     city = Column(String, nullable=False)
 
     departments = relationship("Department", back_populates="university")
