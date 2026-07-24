@@ -12,6 +12,7 @@ from app.models.report import Report
 from app.models.course_professor import CourseProfessor
 from app.schemas.review import ReviewCreate, ReviewResponse, ReviewStatusUpdate, ReviewFullResponse, ReviewUpdate
 from app.api.deps import get_current_user, get_current_admin_user
+from app.services.ai_service import moderate_review
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -49,6 +50,9 @@ def create_review(
             detail="Bu derse zaten bir değerlendirme yaptınız",
         )
 
+    db.refresh(review)
+    review.status = moderate_review(review)
+    db.commit()
     db.refresh(review)
     return review
 

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, Enum as SAEnum
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, Enum as SAEnum
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 from app.models.enums import UserRole
@@ -11,6 +12,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_verified = Column(Boolean, default=False)
     role = Column(SAEnum(UserRole, name="user_role"), nullable=False, default=UserRole.student)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     reviews = relationship("Review", back_populates="user")
     reports = relationship("Report", back_populates="reporter")

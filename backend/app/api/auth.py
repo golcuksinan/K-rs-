@@ -23,7 +23,7 @@ MAX_OTP_ATTEMPTS = 5
 
 
 def send_verification_email(plain_email: str, otp: str) -> None:
-    # TODO: gerçek mail servisi (3. kişi DevOps ile konuşulacak)
+    # TODO: gerçek mail servisi (DevOps ile konuşulacak)
     print(f"[MAIL] {plain_email} -> doğrulama kodu: {otp}")
 
 
