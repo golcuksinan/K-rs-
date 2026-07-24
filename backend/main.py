@@ -5,7 +5,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.db import base  # noqa: F401
 from app.core.limiter import limiter
-from app.api import auth, reviews, reports, course_professors, professors, universities
+from app.api import auth, reviews, reports, course_professors, professors, universities, departments
 
 app = FastAPI(title="Kürsü API")
 
@@ -19,6 +19,7 @@ app.include_router(reports.router)
 app.include_router(course_professors.router)
 app.include_router(professors.router)
 app.include_router(universities.router)
+app.include_router(departments.router)
 
 @app.get("/health")
 @limiter.exempt
