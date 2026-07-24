@@ -30,11 +30,18 @@ def send_verification_email(plain_email: str, otp: str) -> None:
 def send_reset_email(plain_email: str, otp: str) -> None:
     print(f"[MAIL] {plain_email} -> şifre sıfırlama kodu: {otp}")
 
+def cleanup_expired_verifications(db: Session) -> None:
+    db.query(EmailVerification).filter(
+        EmailVerification.expires_at < datetime.utcnow()
+    ).delete(synchronize_session=False)
+    db.commit()
 
 # ---------- 1. Register ----------
 
 @router.post("/register", response_model=MessageResponse)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    cleanup_expired_verifications(db) 
+
     email_hash = hash_email(payload.email)
 
     if db.query(User).filter(User.email_hash == email_hash).first():
@@ -122,6 +129,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/forgot-password", response_model=MessageResponse)
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    cleanup_expired_verifications(db) 
+    
     generic_response = MessageResponse(
         message="Eğer bu adres kayıtlıysa, şifre sıfırlama kodu gönderildi"
     )
