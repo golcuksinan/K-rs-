@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -36,7 +38,6 @@ def get_current_user(
 
     return user
 
-
 def get_current_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
@@ -46,3 +47,14 @@ def get_current_admin_user(
             detail="Bu işlem için admin yetkisi gerekiyor",
         )
     return current_user
+
+def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if credentials is None:
+        return None
+    user_id = decode_access_token(credentials.credentials)
+    if user_id is None:
+        return None
+    return db.query(User).filter(User.id == user_id).first()
