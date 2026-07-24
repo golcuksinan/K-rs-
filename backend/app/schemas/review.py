@@ -14,7 +14,16 @@ class ReviewCreate(BaseModel):
     comment: Optional[str] = Field(default=None, max_length=2000)
 
 
-# ---------- Response ----------
+# ---------- [YENİ] Düzenleme ----------
+
+class ReviewUpdate(BaseModel):
+    teaching_score: int = Field(ge=1, le=5)
+    difficulty_score: int = Field(ge=1, le=5)
+    fairness_score: int = Field(ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=2000)
+
+
+# ---------- Response (public) ----------
 
 class ReviewResponse(BaseModel):
     id: int
@@ -29,6 +38,16 @@ class ReviewResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ---------- [YENİ] Response (kullanıcının kendisi + admin, edit karşılaştırması için) ----------
+
+class ReviewFullResponse(ReviewResponse):
+    has_pending_edit: bool
+    pending_teaching_score: Optional[int]
+    pending_difficulty_score: Optional[int]
+    pending_fairness_score: Optional[int]
+    pending_comment: Optional[str]
 
 
 # ---------- Admin: status güncelleme ----------
