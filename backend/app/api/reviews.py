@@ -1,11 +1,11 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.db.session import get_db, SessionLocal
 from app.models.user import User
 from app.models.review import Review
 from app.models.report import Report
@@ -16,12 +16,26 @@ from app.services.ai_service import moderate_review
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
+# ---------- 0. Yardımcı fonksiyonlar ----------
+def _run_moderation_background(review_id: int):
+    db = SessionLocal()
+    try:
+        review = db.query(Review).filter(Review.id == review_id).first()
+        if review is None:
+            return
+        review.status = moderate_review(review)
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
 
 # ---------- 1. Review oluştur ----------
 
 @router.post("", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
 def create_review(
     payload: ReviewCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -51,9 +65,8 @@ def create_review(
         )
 
     db.refresh(review)
-    review.status = moderate_review(review)
-    db.commit()
-    db.refresh(review)
+    # review.status model default'u "pending" — AI moderasyonu arka planda çalışıp güncelleyecek
+    background_tasks.add_task(_run_moderation_background, review.id)
     return review
 
 @router.get("/me", response_model=list[ReviewFullResponse])
