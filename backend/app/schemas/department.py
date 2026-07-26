@@ -2,9 +2,9 @@ from typing import List
 
 from pydantic import BaseModel
 
-from app.schemas.university import UniversityResponse
+from app.schemas.faculty import FacultyResponse
 
 
 class DepartmentGroupResponse(BaseModel):
     department_name: str
-    universities: List[UniversityResponse]
+    faculties: List[FacultyResponse]

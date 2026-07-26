@@ -21,9 +21,9 @@ def search_departments(
 
     groups: dict[str, list] = {}
     for dept in departments:
-        groups.setdefault(dept.name, []).append(dept.university)
+        groups.setdefault(dept.name, []).append(dept.faculty)
 
     return [
-        DepartmentGroupResponse(department_name=name, universities=unis)
-        for name, unis in sorted(groups.items())
+        DepartmentGroupResponse(department_name=name, faculties=facs)
+        for name, facs in sorted(groups.items())
     ]
