@@ -1,6 +1,7 @@
 from app.db.base_class import Base
 
 from app.models.university import University
+from app.models.faculty import Faculty 
 from app.models.department import Department
 from app.models.course import Course
 from app.models.professor import Professor

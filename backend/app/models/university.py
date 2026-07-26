@@ -10,4 +10,4 @@ class University(Base):
     short_name = Column(String, nullable=True)
     city = Column(String, nullable=False)
 
-    departments = relationship("Department", back_populates="university")
+    faculties = relationship("Faculty", back_populates="university")
