@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
 from app.models.email_verification import EmailVerification
+from app.models.department import Department
+
 from app.schemas.auth import (
     RegisterRequest, VerifyOTPRequest, LoginRequest, TokenResponse,
     ForgotPasswordRequest, ResetPasswordRequest, MessageResponse,
@@ -55,12 +57,17 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         db.delete(existing)
         db.flush()
 
+    if not db.query(Department).filter(Department.id == payload.department_id).first():
+        raise HTTPException(status_code=400, detail="Geçersiz department_id")
+    
     otp = generate_otp()
     entry = EmailVerification(
         email_hash=email_hash,
         email_plain=payload.email.strip().lower(),
         otp_hash=hash_otp(otp),
         hashed_password=hash_password(payload.password),
+        department_id=payload.department_id,
+        enrollment_year=payload.enrollment_year,
         expires_at=datetime.utcnow() + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
     )
     db.add(entry)
@@ -101,6 +108,8 @@ def verify_otp_endpoint(payload: VerifyOTPRequest, db: Session = Depends(get_db)
         email_hash=entry.email_hash,
         hashed_password=entry.hashed_password,
         is_verified=True,
+        department_id=entry.department_id,
+        enrollment_year=entry.enrollment_year,
     )
     db.add(user)
     db.delete(entry)
