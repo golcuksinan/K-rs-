@@ -76,3 +76,16 @@ def update_report_status(
     db.commit()
     db.refresh(report)
     return report
+
+#---------- 4. Kendi report'larını listele----------
+@router.get("/me", response_model=list[ReportResponse])
+def list_my_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return (
+        db.query(Report)
+        .filter(Report.reporter_id == current_user.id)
+        .order_by(Report.created_at.desc())
+        .all()
+    )

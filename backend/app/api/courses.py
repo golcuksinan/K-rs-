@@ -31,7 +31,7 @@ def list_courses(
             name=c.name,
             code=c.code,
             department_id=c.department_id,
-            department_name=c.department.name,
+            department_name="Silinmiş Bölüm" if c.department.deleted_at is not None else c.department.name,
         )
         for c in courses
     ]
