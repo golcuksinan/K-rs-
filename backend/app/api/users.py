@@ -3,11 +3,15 @@ from app.api.deps import get_current_user
 from app.schemas.user import UserMeResponse
 from app.models.user import User
 from app.core.academic import compute_sinif
+from app.core.masking import (
+    DELETED_DEPARTMENT,
+    DELETED_FACULTY,
+    DELETED_UNIVERSITY,
+    masked_name,
+    masked_optional,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-def _masked(deleted_at, name: str, placeholder: str) -> str:
-    return placeholder if deleted_at is not None else name
 
 @router.get("/me", response_model=UserMeResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
@@ -22,10 +26,10 @@ def read_current_user(current_user: User = Depends(get_current_user)):
         is_verified=current_user.is_verified,
         created_at=current_user.created_at,
         department_id=department.id,
-        department_name=_masked(department.deleted_at, department.name, "Silinmiş Bölüm"),
+        department_name=masked_name(department.deleted_at, department.name, DELETED_DEPARTMENT),
         faculty_id=faculty.id,
-        faculty_name=_masked(faculty.deleted_at, faculty.name, "Silinmiş Fakülte"),
+        faculty_name=masked_name(faculty.deleted_at, faculty.name, DELETED_FACULTY),
         university_id=university.id,
-        university_name=_masked(university.deleted_at, university.name, "Silinmiş Üniversite"),
-        university_short_name=None if university.deleted_at is not None else university.short_name,
+        university_name=masked_name(university.deleted_at, university.name, DELETED_UNIVERSITY),
+        university_short_name=masked_optional(university.deleted_at, university.short_name),
     )

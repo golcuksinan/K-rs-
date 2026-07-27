@@ -2,25 +2,23 @@ import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from typing import List, Optional
+from typing import Optional
 
+from app.api.common import PageParams, page, paginate, pagination
+from app.api.deps import get_optional_current_user
+from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.course_professor import CourseProfessor
-from app.models.user import User
 from app.models.enums import UserRole
-from app.api.deps import get_optional_current_user
+from app.models.user import User
+from app.schemas.common import Page
 from app.schemas.course_professor import CourseProfessorDetail, CourseProfessorListItem
+from app.services.ratings import APPROVED, EMPTY_RATING, rating_by_course_professor
 
 router = APIRouter(prefix="/course-professors", tags=["course-professors"])
 
 _SEASON_ORDER = {"güz": 0, "bahar": 1}
-
-def _average(values: list[int]) -> Optional[float]:
-    return sum(values) / len(values) if values else None
-
-def _course_name(course: Course) -> str:
-    return "Silinmiş Ders" if course.deleted_at is not None else course.name
 
 def _parse_term_key(term: str) -> tuple[int, int]:
     """'2025-2026 Güz' -> (2025, 0). Bilinmeyen formatı en sona atar."""
@@ -37,34 +35,44 @@ def get_course_professor_detail(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_current_user),
 ):
-    cp = db.query(CourseProfessor).filter(
-        CourseProfessor.id == course_professor_id
-    ).first()
+    cp = (
+        db.query(CourseProfessor)
+        .options(
+            joinedload(CourseProfessor.course),
+            joinedload(CourseProfessor.professor),
+            joinedload(CourseProfessor.reviews),
+        )
+        .filter(CourseProfessor.id == course_professor_id)
+        .first()
+    )
     if not cp:
         raise HTTPException(status_code=404, detail="Ders/hoca eşleşmesi bulunamadı")
 
     is_admin = current_user is not None and current_user.role == UserRole.admin
 
-    approved = [r for r in cp.reviews if r.status == "approved"]
-    reviews_to_show = cp.reviews if is_admin else approved
+    # Ortalamalar her zaman sadece approved'dan (ratings servisi garanti eder);
+    # review listesi admin'e hepsi, public'e sadece approved.
+    rating = rating_by_course_professor(db, [cp.id]).get(cp.id, EMPTY_RATING)
+    reviews_to_show = cp.reviews if is_admin else [r for r in cp.reviews if r.status == APPROVED]
 
     return CourseProfessorDetail(
         id=cp.id,
-        course_name=_course_name(cp.course),
+        course_name=masked_name(cp.course.deleted_at, cp.course.name, DELETED_COURSE),
         course_code=cp.course.code,
         professor_name=cp.professor.full_name,
         term=cp.term,
-        average_teaching_score=_average([r.teaching_score for r in approved]),
-        average_difficulty_score=_average([r.difficulty_score for r in approved]),
-        average_fairness_score=_average([r.fairness_score for r in approved]),
-        review_count=len(approved),
+        average_teaching_score=rating.average_teaching_score,
+        average_difficulty_score=rating.average_difficulty_score,
+        average_fairness_score=rating.average_fairness_score,
+        review_count=rating.review_count,
         reviews=reviews_to_show,
     )
 
-@router.get("", response_model=List[CourseProfessorListItem])
+@router.get("", response_model=Page[CourseProfessorListItem])
 def list_course_professors(
     course_id: int,
     term: Optional[str] = None,
+    params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
 ):
     course = db.query(Course).filter(Course.id == course_id).first()
@@ -88,17 +96,20 @@ def list_course_professors(
     if term is not None:
         query = query.filter(CourseProfessor.term == term)
 
-    result = []
-    for cp in query.all():
-        approved = [r for r in cp.reviews if r.status == "approved"]
-        result.append(
+    course_professors, total = paginate(query.order_by(CourseProfessor.id), params)
+    ratings = rating_by_course_professor(db, [cp.id for cp in course_professors])
+
+    items = []
+    for cp in course_professors:
+        rating = ratings.get(cp.id, EMPTY_RATING)
+        items.append(
             CourseProfessorListItem(
                 id=cp.id,
                 professor_name=cp.professor.full_name,
                 term=cp.term,
-                avg_teaching=_average([r.teaching_score for r in approved]),
-                avg_difficulty=_average([r.difficulty_score for r in approved]),
-                avg_fairness=_average([r.fairness_score for r in approved]),
+                avg_teaching=rating.average_teaching_score,
+                avg_difficulty=rating.average_difficulty_score,
+                avg_fairness=rating.average_fairness_score,
             )
         )
-    return result
+    return page(items, total, params)

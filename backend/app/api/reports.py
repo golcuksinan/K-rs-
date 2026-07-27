@@ -6,7 +6,9 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.report import Report
 from app.models.review import Review
+from app.schemas.common import Page
 from app.schemas.report import ReportCreate, ReportResponse, ReportStatusUpdate
+from app.api.common import PageParams, pagination, paginated
 from app.api.deps import get_current_user, get_current_admin_user
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -46,17 +48,18 @@ def create_report(
 
 # ---------- 2. Bekleyen report'ları listele (sadece admin) ----------
 
-@router.get("/pending", response_model=list[ReportResponse])
+@router.get("/pending", response_model=Page[ReportResponse])
 def list_pending_reports(
+    params: PageParams = Depends(pagination),
     admin: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
-    return (
+    query = (
         db.query(Report)
         .filter(Report.status == "pending")
         .order_by(Report.created_at.asc())
-        .all()
     )
+    return paginated(query, params)
 
 
 # ---------- 3. Report durumunu güncelle (sadece admin) ----------
@@ -78,14 +81,15 @@ def update_report_status(
     return report
 
 #---------- 4. Kendi report'larını listele----------
-@router.get("/me", response_model=list[ReportResponse])
+@router.get("/me", response_model=Page[ReportResponse])
 def list_my_reports(
+    params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return (
+    query = (
         db.query(Report)
         .filter(Report.reporter_id == current_user.id)
         .order_by(Report.created_at.desc())
-        .all()
     )
+    return paginated(query, params)

@@ -10,7 +10,9 @@ from app.models.user import User
 from app.models.review import Review
 from app.models.report import Report
 from app.models.course_professor import CourseProfessor
+from app.schemas.common import Page
 from app.schemas.review import ReviewCreate, ReviewResponse, ReviewStatusUpdate, ReviewFullResponse, ReviewUpdate
+from app.api.common import PageParams, pagination, paginated
 from app.api.deps import get_current_user, get_current_admin_user
 from app.services.ai_service import moderate_review
 
@@ -69,17 +71,18 @@ def create_review(
     background_tasks.add_task(_run_moderation_background, review.id)
     return review
 
-@router.get("/me", response_model=list[ReviewFullResponse])
+@router.get("/me", response_model=Page[ReviewFullResponse])
 def list_my_reviews(
+    params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return (
+    query = (
         db.query(Review)
         .filter(Review.user_id == current_user.id)
         .order_by(Review.created_at.desc())
-        .all()
     )
+    return paginated(query, params)
 
 @router.patch("/{review_id}", response_model=ReviewFullResponse)
 def update_my_review(
@@ -120,9 +123,10 @@ def update_my_review(
 
 # ---------- 2. Review listele (onaylanmış olanlar, herkese açık) ----------
 
-@router.get("", response_model=list[ReviewResponse])
+@router.get("", response_model=Page[ReviewResponse])
 def list_reviews(
     course_professor_id: Optional[int] = None,
+    params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
 ):
     query = db.query(Review).filter(Review.status == "approved")
@@ -130,14 +134,15 @@ def list_reviews(
     if course_professor_id is not None:
         query = query.filter(Review.course_professor_id == course_professor_id)
 
-    return query.order_by(Review.created_at.desc()).all()
+    return paginated(query.order_by(Review.created_at.desc()), params)
 
 
 # ---------- 3. Bekleyen review'ları listele (sadece admin) ----------
 
-@router.get("/pending", response_model=list[ReviewFullResponse])
+@router.get("/pending", response_model=Page[ReviewFullResponse])
 def list_pending_reviews(
     course_professor_id: Optional[int] = None,
+    params: PageParams = Depends(pagination),
     admin: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
@@ -148,7 +153,7 @@ def list_pending_reviews(
     if course_professor_id is not None:
         query = query.filter(Review.course_professor_id == course_professor_id)
 
-    return query.order_by(Review.created_at.asc()).all()
+    return paginated(query.order_by(Review.created_at.asc()), params)
 
 
 # ---------- 4. Review durumunu güncelle (sadece admin) ----------

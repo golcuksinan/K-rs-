@@ -3,11 +3,14 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.masking import DELETED_DEPARTMENT, masked_name
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.department import Department
 from app.models.user import User
+from app.schemas.common import Page
 from app.schemas.course import CourseResponse, CourseCreate, CourseUpdate
+from app.api.common import PageParams, get_active_or_400, get_active_or_404, page, paginate, pagination
 from app.api.deps import get_current_admin_user
 
 router = APIRouter(prefix="/courses", tags=["courses"])
@@ -19,15 +22,18 @@ def _to_response(course: Course) -> CourseResponse:
         name=course.name,
         code=course.code,
         department_id=course.department_id,
-        department_name="Silinmiş Bölüm" if course.department.deleted_at is not None else course.department.name,
+        department_name=masked_name(
+            course.department.deleted_at, course.department.name, DELETED_DEPARTMENT
+        ),
         deleted_at=course.deleted_at,
     )
 
 
-@router.get("", response_model=list[CourseResponse])
+@router.get("", response_model=Page[CourseResponse])
 def list_courses(
     department_id: int = Query(...),
     search: str | None = Query(None),
+    params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
 ):
     query = (
@@ -41,19 +47,9 @@ def list_courses(
             (Course.name.ilike(f"%{search}%")) | (Course.code.ilike(f"%{search}%"))
         )
 
-    courses = query.order_by(Course.name).all()
+    courses, total = paginate(query.order_by(Course.name), params)
 
-    return [_to_response(c) for c in courses]
-
-
-def _get_valid_department(db: Session, department_id: int) -> Department:
-    department = db.query(Department).filter(
-        Department.id == department_id,
-        Department.deleted_at.is_(None),
-    ).first()
-    if not department:
-        raise HTTPException(status_code=400, detail="Geçersiz department_id")
-    return department
+    return page([_to_response(c) for c in courses], total, params)
 
 
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
@@ -62,7 +58,7 @@ def create_course(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin_user),
 ):
-    _get_valid_department(db, payload.department_id)
+    get_active_or_400(db, Department, payload.department_id, "department_id")
 
     course = Course(department_id=payload.department_id, name=payload.name, code=payload.code)
     db.add(course)
@@ -82,16 +78,11 @@ def update_course(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin_user),
 ):
-    course = db.query(Course).filter(
-        Course.id == course_id,
-        Course.deleted_at.is_(None),
-    ).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="Ders bulunamadı")
+    course = get_active_or_404(db, Course, course_id, "Ders bulunamadı")
 
     data = payload.model_dump(exclude_unset=True)
     if "department_id" in data:
-        _get_valid_department(db, data["department_id"])
+        get_active_or_400(db, Department, data["department_id"], "department_id")
 
     for field, value in data.items():
         setattr(course, field, value)
@@ -111,12 +102,7 @@ def delete_course(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin_user),
 ):
-    course = db.query(Course).filter(
-        Course.id == course_id,
-        Course.deleted_at.is_(None),
-    ).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="Ders bulunamadı")
+    course = get_active_or_404(db, Course, course_id, "Ders bulunamadı")
 
     course.deleted_at = func.now()
     db.commit()
