@@ -6,6 +6,9 @@ from app.core.academic import compute_sinif
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+def _masked(deleted_at, name: str, placeholder: str) -> str:
+    return placeholder if deleted_at is not None else name
+
 @router.get("/me", response_model=UserMeResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
     department = current_user.department
@@ -19,10 +22,10 @@ def read_current_user(current_user: User = Depends(get_current_user)):
         is_verified=current_user.is_verified,
         created_at=current_user.created_at,
         department_id=department.id,
-        department_name=department.name,
+        department_name=_masked(department.deleted_at, department.name, "Silinmiş Bölüm"),
         faculty_id=faculty.id,
-        faculty_name=faculty.name,
+        faculty_name=_masked(faculty.deleted_at, faculty.name, "Silinmiş Fakülte"),
         university_id=university.id,
-        university_name=university.name,
-        university_short_name=university.short_name,
+        university_name=_masked(university.deleted_at, university.name, "Silinmiş Üniversite"),
+        university_short_name=None if university.deleted_at is not None else university.short_name,
     )
