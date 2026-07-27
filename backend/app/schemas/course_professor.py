@@ -29,4 +29,4 @@ class CourseProfessorListItem(BaseModel):
     avg_fairness: Optional[float]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
