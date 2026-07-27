@@ -7,7 +7,7 @@ from app.models.professor import Professor
 from app.models.user import User
 from app.models.enums import UserRole
 from app.api.deps import get_optional_current_user
-from app.api.course_professors import _average
+from app.api.course_professors import _average, _course_name
 from app.schemas.professor import ProfessorDetail, CourseProfessorSummary
 
 router = APIRouter(prefix="/professors", tags=["professors"])
@@ -34,7 +34,7 @@ def get_professor_detail(
 
         course_summaries.append(CourseProfessorSummary(
             id=cp.id,
-            course_name=cp.course.name,
+            course_name=_course_name(cp.course),
             course_code=cp.course.code,
             term=cp.term,
             average_teaching_score=_average([r.teaching_score for r in approved]),

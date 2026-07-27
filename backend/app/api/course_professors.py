@@ -19,6 +19,9 @@ _SEASON_ORDER = {"güz": 0, "bahar": 1}
 def _average(values: list[int]) -> Optional[float]:
     return sum(values) / len(values) if values else None
 
+def _course_name(course: Course) -> str:
+    return "Silinmiş Ders" if course.deleted_at is not None else course.name
+
 def _parse_term_key(term: str) -> tuple[int, int]:
     """'2025-2026 Güz' -> (2025, 0). Bilinmeyen formatı en sona atar."""
     match = re.match(r"(\d{4})-\d{4}\s+(\S+)", term.strip())
@@ -47,7 +50,7 @@ def get_course_professor_detail(
 
     return CourseProfessorDetail(
         id=cp.id,
-        course_name=cp.course.name,
+        course_name=_course_name(cp.course),
         course_code=cp.course.code,
         professor_name=cp.professor.full_name,
         term=cp.term,
