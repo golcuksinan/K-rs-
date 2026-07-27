@@ -2,8 +2,6 @@
 
 **Kürsü**, öğrencilerin aldıkları dersler ve akademisyenler hakkında **anonim olarak** yorum yapıp puan verebildiği, topluluk odaklı bir akademik değerlendirme platformudur. Kullanıcılar hoca ismiyle arama yaparak geçmiş öğrencilerin deneyimlerini (ders anlatımı, sınav zorluğu, notlandırma tarzı vb.) inceleyebilir.
 
-Platform ayrıca bir **üniversite tercih danışmanlığı modülü** içerir: adaylar puan/sıralama bilgilerini girerek bölüm ve üniversite önerileri alabilir, ilgilendikleri bölümlerdeki hocaların ve derslerin gerçek öğrenci yorumlarını inceleyerek tercih listesini daha bilinçli şekilde oluşturabilir.
-
 Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih döneminde daha bilinçli kararlar almasını sağlamayı ve akademik geri bildirim kültürünü şeffaf, güvenli bir ortamda güçlendirmeyi hedefler.
 
 ---
@@ -15,8 +13,7 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 -  **Tam Anonimlik** — Kullanıcı kimliği hiçbir şekilde yorumlarla ilişkilendirilmez
 -  **AI Destekli Moderasyon** — Küfür, hakaret veya nefret söylemi içeren yorumların otomatik tespiti ve filtrelenmesi
 -  **Ders & Hoca Profilleri** — Geçmiş dönemlere ait yorum ve puan geçmişinin tutulması
--  **Üniversite Tercih Danışmanlığı** — Puan/sıralama bilgisine göre bölüm ve üniversite önerileri sunan tercih modülü
-
+  
 ---
 
 ##  Teknolojik Yığın
