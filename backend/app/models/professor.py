@@ -7,5 +7,6 @@ class Professor(Base):
 
     id = Column(Integer, primary_key=True)
     full_name = Column(String, nullable=False)
+    title = Column(String, nullable=True)
 
     course_professors = relationship("CourseProfessor", back_populates="professor")

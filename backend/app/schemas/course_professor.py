@@ -19,3 +19,14 @@ class CourseProfessorDetail(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CourseProfessorListItem(BaseModel):
+    id: int
+    professor_name: str
+    term: str
+    avg_teaching: Optional[float]
+    avg_difficulty: Optional[float]
+    avg_fairness: Optional[float]
+
+    class Config:
+        orm_mode = True
