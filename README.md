@@ -23,7 +23,7 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 | **Frontend** | React.js + Tailwind CSS | Arama arayüzü, hoca detay sayfalarının render edilmesi |
 | **Backend** | FastAPI | Yüksek performanslı, asenkron API yapısı ve otomatik Swagger/OpenAPI dokümantasyonu |
 | **Veritabanı** | PostgreSQL | Hocalar, dersler, yorumlar ve puanlar arasındaki ilişkisel veri yapısının yönetimi |
-| **Yapay Zeka** | GPT-4o-mini / Hugging Face | Yorumların duygu analizi, küfür/hakaret filtrelemesi ve puan/ilgi alanına göre bölüm-üniversite öneri motoru |
+| **Yapay Zeka** | GPT-4o-mini / Hugging Face | Yorumların duygu analizi, küfür/hakaret filtrelemesi |
 
 ---
 
