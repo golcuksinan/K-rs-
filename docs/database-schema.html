@@ -26,6 +26,33 @@
   #erd svg.erDiagram .row-rect-odd rect,
   #erd svg.erDiagram .row-rect-even path,
   #erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+  section.notes {
+    margin-top: 32px;
+    max-width: 900px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  section.notes h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+  section.notes h3 {
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: #111827;
+  }
+  section.notes p,
+  section.notes li {
+    color: #4b5563;
+  }
+  section.notes ul {
+    padding-left: 20px;
+  }
+  section.notes code {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 13px;
+    color: #111827;
+  }
 </style>
 </head>
 <body>
@@ -34,6 +61,34 @@
 <p class="subtitle">Öğrenci-hoca değerlendirme platformunun varlık-ilişki diyagramı (ERD)</p>
 
 <div id="erd"></div>
+
+<section class="notes">
+  <h2>Kısıtlar ve Notlar</h2>
+  <p>
+    Mermaid koşullu index ifade edemediği için kolonlardaki <code>UK</code> işareti sadece
+    &ldquo;bu kolon bir tekillik kısıtına dahil&rdquo; demektir; kompozit ve koşullu ayrıntı
+    aşağıdadır.
+  </p>
+  <h3>Partial unique index&rsquo;ler (yalnızca aktif kayıtlar)</h3>
+  <ul>
+    <li><code>uq_university_name_active</code> — <code>universities(name)</code> WHERE <code>deleted_at IS NULL</code></li>
+    <li><code>uq_university_faculty_name_active</code> — <code>faculties(university_id, name)</code> WHERE <code>deleted_at IS NULL</code></li>
+    <li><code>uq_faculty_department_name_active</code> — <code>departments(faculty_id, name)</code> WHERE <code>deleted_at IS NULL</code></li>
+    <li><code>uq_department_course_name_active</code> — <code>courses(department_id, name)</code> WHERE <code>deleted_at IS NULL</code></li>
+  </ul>
+  <h3>Tam unique / check kısıtları</h3>
+  <ul>
+    <li><code>uq_user_course_professor_review</code> — <code>reviews(user_id, course_professor_id)</code>: bir kullanıcı aynı ders-hoca eşleşmesine tek yorum yazar.</li>
+    <li><code>uq_reporter_review_report</code> — <code>reports(reporter_id, review_id)</code>: aynı yorum bir kullanıcı tarafından tek kez şikâyet edilir.</li>
+    <li><code>ck_course_professor_target_grade_range</code> — CHECK <code>target_grade_min &le; target_grade_max</code></li>
+  </ul>
+  <h3>Davranış notları</h3>
+  <ul>
+    <li><strong>Soft delete:</strong> <code>deleted_at IS NULL</code> aktif kaydı gösterir; silinen kayıt tabloda kalır, sorgulardan filtrelenir.</li>
+    <li><strong>Anonimlik:</strong> <code>users</code> tablosunda düz e-posta <strong>yoktur</strong>, yalnızca HMAC <code>email_hash</code> saklanır.</li>
+    <li><strong><code>email_verifications.email_plain</code>:</strong> OTP gönderimi için düz e-postayı <strong>geçici</strong> tutar; doğrulama başarılı olunca veya süresi geçmiş kayıtlar temizlenince satırla birlikte silinir. Kalıcı saklanan bir alan değildir.</li>
+  </ul>
+</section>
 
 <script type="module">
 import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -52,8 +107,11 @@ mermaid.initialize({
   },
 });
 const { svg } = await mermaid.render('erd-svg', `erDiagram
-  UNIVERSITY ||--o{ DEPARTMENT : has
+  UNIVERSITY ||--o{ FACULTY : has
+  FACULTY ||--o{ DEPARTMENT : has
   DEPARTMENT ||--o{ COURSE : offers
+  DEPARTMENT ||--o{ USER : enrolls
+  DEPARTMENT ||--o{ EMAIL_VERIFICATION : "pending signup"
   COURSE ||--o{ COURSE_PROFESSOR : "has section"
   PROFESSOR ||--o{ COURSE_PROFESSOR : teaches
   COURSE_PROFESSOR ||--o{ REVIEW : receives
@@ -63,35 +121,64 @@ const { svg } = await mermaid.render('erd-svg', `erDiagram
 
   UNIVERSITY {
     int id PK
-    string name
+    string name UK
+    string short_name
     string city
+    datetime deleted_at
+  }
+  FACULTY {
+    int id PK
+    int university_id FK
+    string name UK
+    datetime deleted_at
   }
   DEPARTMENT {
     int id PK
-    int university_id FK
-    string name
+    int faculty_id FK
+    string name UK
+    datetime deleted_at
   }
   COURSE {
     int id PK
     int department_id FK
-    string name
+    string name UK
     string code
+    datetime deleted_at
   }
   PROFESSOR {
     int id PK
     string full_name
+    string title
   }
   COURSE_PROFESSOR {
     int id PK
     int course_id FK
     int professor_id FK
     string term
+    smallint target_grade_min
+    smallint target_grade_max
   }
   USER {
     int id PK
-    string email
-    string password_hash
+    string email_hash UK
+    string hashed_password
     bool is_verified
+    enum role
+    int department_id FK
+    int enrollment_year
+    datetime created_at
+  }
+  EMAIL_VERIFICATION {
+    int id PK
+    string email_hash UK
+    string email_plain
+    string otp_hash
+    string hashed_password
+    int department_id FK
+    int enrollment_year
+    datetime expires_at
+    int attempt_count
+    datetime created_at
   }
   REVIEW {
     int id PK
@@ -103,6 +190,11 @@ const { svg } = await mermaid.render('erd-svg', `erDiagram
     text comment
     string status
     datetime created_at
+    int pending_teaching_score
+    int pending_difficulty_score
+    int pending_fairness_score
+    text pending_comment
+    bool has_pending_edit
   }
   REPORT {
     int id PK
