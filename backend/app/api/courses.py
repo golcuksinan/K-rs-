@@ -3,10 +3,17 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.masking import DELETED_DEPARTMENT, masked_name
+from app.core.masking import (
+    DELETED_DEPARTMENT,
+    DELETED_FACULTY,
+    DELETED_UNIVERSITY,
+    masked_name,
+    masked_optional,
+)
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.department import Department
+from app.models.faculty import Faculty
 from app.models.user import User
 from app.schemas.common import Page
 from app.schemas.course import CourseResponse, CourseCreate, CourseUpdate
@@ -16,31 +23,48 @@ from app.api.deps import get_current_admin_user
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 
+MIN_SEARCH_LENGTH = 2
+
+# department_id verilmediğinde tüm hiyerarşi zinciri tek sorguda çekilir (N+1 olmasın).
+_CHAIN = joinedload(Course.department).joinedload(Department.faculty).joinedload(Faculty.university)
+
+
 def _to_response(course: Course) -> CourseResponse:
+    department = course.department
+    faculty = department.faculty
+    university = faculty.university
     return CourseResponse(
         id=course.id,
         name=course.name,
         code=course.code,
         department_id=course.department_id,
-        department_name=masked_name(
-            course.department.deleted_at, course.department.name, DELETED_DEPARTMENT
-        ),
+        department_name=masked_name(department.deleted_at, department.name, DELETED_DEPARTMENT),
+        faculty_id=faculty.id,
+        faculty_name=masked_name(faculty.deleted_at, faculty.name, DELETED_FACULTY),
+        university_id=university.id,
+        university_name=masked_name(university.deleted_at, university.name, DELETED_UNIVERSITY),
+        university_short_name=masked_optional(university.deleted_at, university.short_name),
         deleted_at=course.deleted_at,
     )
 
 
 @router.get("", response_model=Page[CourseResponse])
 def list_courses(
-    department_id: int = Query(...),
-    search: str | None = Query(None),
+    department_id: int | None = Query(default=None, description="Bölüm ID (verilmezse search zorunlu)"),
+    search: str | None = Query(default=None, description="Ders adı/kodunda arama"),
     params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
 ):
-    query = (
-        db.query(Course)
-        .options(joinedload(Course.department))
-        .filter(Course.department_id == department_id, Course.deleted_at.is_(None))
-    )
+    if department_id is None and (search is None or len(search.strip()) < MIN_SEARCH_LENGTH):
+        raise HTTPException(
+            status_code=422,
+            detail=f"department_id verilmediğinde search zorunludur (en az {MIN_SEARCH_LENGTH} karakter)",
+        )
+
+    query = db.query(Course).options(_CHAIN).filter(Course.deleted_at.is_(None))
+
+    if department_id is not None:
+        query = query.filter(Course.department_id == department_id)
 
     if search:
         query = query.filter(

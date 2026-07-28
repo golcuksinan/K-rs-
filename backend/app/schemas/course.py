@@ -9,6 +9,11 @@ class CourseResponse(BaseModel):
     code: str
     department_id: int
     department_name: str
+    faculty_id: int
+    faculty_name: str
+    university_id: int
+    university_name: str
+    university_short_name: Optional[str] = None
     deleted_at: Optional[datetime] = None
 
     class Config:

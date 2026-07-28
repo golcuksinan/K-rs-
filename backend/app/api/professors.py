@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
+from app.api.common import PageParams, page, paginate, pagination
 from app.api.deps import get_optional_current_user
 from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db
@@ -9,10 +11,51 @@ from app.models.course_professor import CourseProfessor
 from app.models.enums import UserRole
 from app.models.professor import Professor
 from app.models.user import User
-from app.schemas.professor import ProfessorDetail, CourseProfessorSummary
-from app.services.ratings import APPROVED, EMPTY_RATING, rating_by_course_professor
+from app.schemas.common import Page
+from app.schemas.professor import ProfessorDetail, ProfessorListItem, CourseProfessorSummary
+from app.services.ratings import APPROVED, EMPTY_RATING, rating_by_course_professor, rating_by_professor
 
 router = APIRouter(prefix="/professors", tags=["professors"])
+
+
+# ⚠️ Sabit path olmasa da liste ucu "/{professor_id}"den ÖNCE tanımlanmalı (FastAPI sıra kuralı).
+@router.get("", response_model=Page[ProfessorListItem])
+def list_professors(
+    search: Optional[str] = Query(default=None, description="Hoca adında arama"),
+    params: PageParams = Depends(pagination),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Professor)
+    if search:
+        # ⚠️ ILIKE Türkçe İ/ı eşleşmesi yapmaz (scraper'daki tr_casefold tuzağının arama karşılığı).
+        query = query.filter(Professor.full_name.ilike(f"%{search}%"))
+
+    professors, total = paginate(query.order_by(Professor.full_name), params)
+
+    ids = [p.id for p in professors]
+    ratings = rating_by_professor(db, ids)
+    course_counts = dict(
+        db.query(CourseProfessor.professor_id, func.count(func.distinct(CourseProfessor.course_id)))
+        .filter(CourseProfessor.professor_id.in_(ids))
+        .group_by(CourseProfessor.professor_id)
+        .all()
+    ) if ids else {}
+
+    items = []
+    for p in professors:
+        rating = ratings.get(p.id, EMPTY_RATING)
+        items.append(ProfessorListItem(
+            id=p.id,
+            full_name=p.full_name,
+            title=p.title,
+            course_count=course_counts.get(p.id, 0),
+            review_count=rating.review_count,
+            average_teaching_score=rating.average_teaching_score,
+            average_difficulty_score=rating.average_difficulty_score,
+            average_fairness_score=rating.average_fairness_score,
+        ))
+
+    return page(items, total, params)
 
 
 @router.get("/{professor_id}", response_model=ProfessorDetail)
