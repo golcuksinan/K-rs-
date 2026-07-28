@@ -14,6 +14,11 @@ class ModerationStatus(str, enum.Enum):
 # Zararlı kabul edilecek etiket isimleri
 TOXIC_LABELS = {"toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"}
 
+# Üç bantlı karar eşikleri: > REJECT_THRESHOLD reddedilir, >= PENDING_THRESHOLD
+# insan onayına düşer, altı otomatik onaylanır.
+REJECT_THRESHOLD = 0.70
+PENDING_THRESHOLD = 0.35
+
 
 def _normalize_hf_url(url: str) -> str:
     url = (url or "").strip()
@@ -61,20 +66,20 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
         if isinstance(result, list) and len(result) > 0:
             predictions = result[0] if isinstance(result[0], list) else result
             
-            is_rejected = False
-            for pred in predictions:
-                label = pred.get("label", "").lower()
-                score = pred.get("score", 0.0)
+            max_score = max(
+                (
+                    pred.get("score", 0.0)
+                    for pred in predictions
+                    if pred.get("label", "").lower() in TOXIC_LABELS
+                ),
+                default=0.0,
+            )
 
-                # Toksik/saldırgan etiketlerden birinin skoru 0.70 üzerindeyse reddet
-                if label in TOXIC_LABELS and score > 0.70:
-                    is_rejected = True
-                    break
-
-            if is_rejected:
+            if max_score > REJECT_THRESHOLD:
                 return ModerationStatus.REJECTED
-            else:
-                return ModerationStatus.APPROVED
+            if max_score >= PENDING_THRESHOLD:
+                return ModerationStatus.PENDING
+            return ModerationStatus.APPROVED
 
         return ModerationStatus.PENDING
 
