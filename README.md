@@ -29,6 +29,46 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 
 ##  Yerel Kurulum Adımları
 
+Aşağıdaki adımlar backend'i (FastAPI + PostgreSQL) lokalde ayağa kaldırır. Tüm komutlar
+**`backend/` dizininden** çalıştırılır — uygulama `.env` dosyasını relative yoldan okur.
+
+**Ön koşullar:** Python 3.10+, çalışan bir PostgreSQL sunucusu ve proje için oluşturulmuş boş
+bir veritabanı.
+
+```bash
+# 1. Sanal ortam (proje kökünde)
+python -m venv .venv
+source .venv/bin/activate
+
+# 2. Bağımlılıklar
+pip install -r backend/requirements.txt
+
+# 3. Ortam değişkenleri
+cd backend
+cp .env.example .env
+#    .env içindeki DATABASE_URL, SECRET_KEY, EMAIL_PEPPER_KEY doldurulur.
+#    Açıklamalar ve varsayılanlar için .env.example'a bakınız.
+
+# 4. Veritabanı şeması
+alembic upgrade head
+
+# 5. Sunucu
+uvicorn main:app --reload
+```
+
+Sunucu `http://127.0.0.1:8000` adresinde çalışır; `GET /health` sağlık kontrolü, `/docs`
+Swagger arayüzüdür.
+
+> **Not:** E-posta gönderimi henüz gerçek değil (`app/services/email_service.py` `print()`
+> stub'ı). Kayıt akışını lokalde denerken OTP kodu **backend konsoluna** yazılır.
+
+##  API Dokümantasyonu
+
+- **[docs/api-contract.md](docs/api-contract.md)** — API sözleşmesi: auth akışı, `Page[T]` liste
+  zarfı, maskeleme kuralları, review moderasyon döngüsü, hata gövdeleri ve bilinen kısıtlar.
+  Frontend entegrasyonuna buradan başlanır.
+- **[docs/openapi.json](docs/openapi.json)** — makine okunur OpenAPI şeması (tip üretimi için).
+- Canlı, etkileşimli dokümantasyon: sunucu çalışırken `http://127.0.0.1:8000/docs`.
 
 ## Veritabanı Şeması
  
