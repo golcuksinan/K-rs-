@@ -220,8 +220,10 @@ __marimo__/
 # Scripts
 scripts/
 
-# PAÜ scraper cache (backend/.pau_cache/ — scripts/ altında değil, cwd=backend/)
+# PAÜ scraper cache ve seed_pau_all.py --resume state'i (ikisi de cwd'ye göreli oluşuyor)
 .pau_cache/
+.pau_state.json
+.pau_state.json.bak
 
 # PAÜ EBS katalog snapshot'ları — dokümantasyon değil bot girdisi (docs/database-schema.html etkilenmez)
 docs/PAÜ müh fak.html
