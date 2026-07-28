@@ -19,19 +19,12 @@ from app.core.security import (
 )
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.services.email_service import send_verification_email, send_reset_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 MAX_OTP_ATTEMPTS = 5
 
-
-def send_verification_email(plain_email: str, otp: str) -> None:
-    # TODO: gerçek mail servisi (DevOps ile konuşulacak)
-    print(f"[MAIL] {plain_email} -> doğrulama kodu: {otp}")
-
-
-def send_reset_email(plain_email: str, otp: str) -> None:
-    print(f"[MAIL] {plain_email} -> şifre sıfırlama kodu: {otp}")
 
 def cleanup_expired_verifications(db: Session) -> None:
     db.query(EmailVerification).filter(
