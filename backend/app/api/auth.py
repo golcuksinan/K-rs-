@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -18,6 +18,7 @@ from app.core.security import (
     create_access_token,
 )
 from app.core.config import settings
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -41,7 +42,8 @@ def cleanup_expired_verifications(db: Session) -> None:
 # ---------- 1. Register ----------
 
 @router.post("/register", response_model=MessageResponse)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)):
     cleanup_expired_verifications(db) 
 
     email_hash = hash_email(payload.email)
@@ -80,7 +82,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 # ---------- 2. Verify OTP ----------
 
 @router.post("/verify-otp", response_model=TokenResponse)
-def verify_otp_endpoint(payload: VerifyOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def verify_otp_endpoint(request: Request, payload: VerifyOTPRequest, db: Session = Depends(get_db)):
     email_hash = hash_email(payload.email)
     entry = db.query(EmailVerification).filter(
         EmailVerification.email_hash == email_hash
@@ -104,6 +107,15 @@ def verify_otp_endpoint(payload: VerifyOTPRequest, db: Session = Depends(get_db)
         db.commit()
         raise HTTPException(status_code=400, detail="Kod hatalı")
 
+    # Cross-flow koruması: forgot-password kaydında bu iki alan boş kalır. Guard olmazsa
+    # ikinci bir User yaratılmaya çalışılıp email_hash unique + NOT NULL ihlali → 500.
+    # Kalıcı çözüm EmailVerification.purpose kolonu olurdu (migration ister, MVP'de yok).
+    if entry.department_id is None or entry.enrollment_year is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Bu kod şifre sıfırlama için üretilmiş, kayıt için kullanılamaz",
+        )
+
     user = User(
         email_hash=entry.email_hash,
         hashed_password=entry.hashed_password,
@@ -123,7 +135,8 @@ def verify_otp_endpoint(payload: VerifyOTPRequest, db: Session = Depends(get_db)
 # ---------- 3. Login ----------
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     email_hash = hash_email(payload.email)
     user = db.query(User).filter(User.email_hash == email_hash).first()
 
@@ -137,7 +150,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 # ---------- 4. Forgot password ----------
 
 @router.post("/forgot-password", response_model=MessageResponse)
-def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
     cleanup_expired_verifications(db) 
     
     generic_response = MessageResponse(
@@ -174,7 +188,8 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 # ---------- 5. Reset password ----------
 
 @router.post("/reset-password", response_model=MessageResponse)
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password(request: Request, payload: ResetPasswordRequest, db: Session = Depends(get_db)):
     email_hash = hash_email(payload.email)
     entry = db.query(EmailVerification).filter(
         EmailVerification.email_hash == email_hash
