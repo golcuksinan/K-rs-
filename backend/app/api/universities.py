@@ -1,7 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -42,7 +43,11 @@ def create_university(
 ):
     university = University(name=payload.name, short_name=payload.short_name, city=payload.city)
     db.add(university)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Bu isimde bir üniversite zaten var")
     db.refresh(university)
     return university
 
@@ -61,7 +66,11 @@ def update_university(
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(university, field, value)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Bu isimde bir üniversite zaten var")
     db.refresh(university)
     return university
 
