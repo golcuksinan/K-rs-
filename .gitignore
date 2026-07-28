@@ -220,6 +220,13 @@ __marimo__/
 # Scripts
 scripts/
 
+# PAÜ scraper cache (backend/.pau_cache/ — scripts/ altında değil, cwd=backend/)
+.pau_cache/
+
+# PAÜ EBS katalog snapshot'ları — dokümantasyon değil bot girdisi (docs/database-schema.html etkilenmez)
+docs/PAÜ müh fak.html
+docs/paü bütün faks.html
+
 #Vscode
 .vscode/
 .claude/
