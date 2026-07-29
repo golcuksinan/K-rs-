@@ -218,7 +218,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Scripts
-scripts/
+backend/scripts/*
+!backend/scripts/tests/
 
 # PAÜ scraper cache ve seed_pau_all.py --resume state'i (ikisi de cwd'ye göreli oluşuyor)
 .pau_cache/
