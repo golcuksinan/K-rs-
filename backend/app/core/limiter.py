@@ -12,7 +12,11 @@ from starlette.types import Scope
 # slowapi de Postgres desteklemiyor). Bu yüzden API **tek worker** ile çalıştırılmak zorunda —
 # N worker'ın her biri kendi sayacını tutar, efektif limit sessizce N katına çıkar. Ölçekleme
 # önce paylaşımlı bir limiter backend'i gerektirir; `--workers`/`--scale` ile çoğaltılmamalı.
-limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+# Strateji fixed-window: tek bir limit pencerenin başında tamamen harcanabilir. Saniyelik
+# pencere bu yüzden var — 100/dakika tek başına saniyede 100 isteğe izin verir, DB havuzu ise
+# 15 eşzamanlı sorgu kaldırır. 20 sınırı havuzun hemen üstünde; meşru bir sayfa yüklemesinin
+# paralel istek sayısının ise çok üstünde (kısa pencere aynı zamanda paralelliğe sert tavandır).
+limiter = Limiter(key_func=get_remote_address, default_limits=["20/second;100/minute"])
 
 
 def _resolve_handler(route: BaseRoute, scope: Scope) -> Optional[Callable]:

@@ -1,4 +1,4 @@
-"""Cross-cutting: main.py'deki slowapi rate limiting middleware'i (varsayılan 100/dakika).
+"""Cross-cutting: main.py'deki slowapi rate limiting middleware'i (varsayılan 20/saniye + 100/dakika).
 
 Diğer tüm testlerde rate limiting `_disable_rate_limiting` (autouse) ile kapalıdır;
 bu dosyadaki testler `enable_rate_limiting` fixture'ını isteyip özel olarak açar.
@@ -22,7 +22,11 @@ class TestRateLimiting:
         assert 429 in statuses
 
     def test_auth_endpoints_have_stricter_limit(self, client, enable_rate_limiting):
-        """Auth uçlarında global 100/dakika değil, uç bazlı 5/dakika geçerli."""
+        """Auth uçlarında global limit değil, uç bazlı 5/dakika geçerli.
+
+        İlk beşin 401 dönmesi bir sözleşme: auth uçlarına saniyelik pencere eklenirse
+        (5'ten dar bir değerle) burası kırılır — kasıtlı.
+        """
         payload = {"email": "yok@posta.pau.edu.tr", "password": "YanlisSifre1"}
         statuses = [client.post("/auth/login", json=payload).status_code for _ in range(6)]
 
