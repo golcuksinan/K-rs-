@@ -11,7 +11,7 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 -  **Akıllı Arama** — Hoca veya ders ismiyle hızlı ve anlık arama
 -  **Çok Boyutlu Puanlama** — Ders anlatımı, sınav zorluğu, notlandırma tarzı gibi kriterlere göre değerlendirme
 -  **Tam Anonimlik** — Kullanıcı kimliği hiçbir şekilde yorumlarla ilişkilendirilmez
--  **AI Destekli Moderasyon** — Küfür, hakaret veya nefret söylemi içeren yorumların otomatik tespiti ve filtrelenmesi
+-  **AI Destekli Moderasyon** — Küfür, hakaret veya nefret söylemi içeren yorumların yayın öncesi taranması
 -  **Ders & Hoca Profilleri** — Geçmiş dönemlere ait yorum ve puan geçmişinin tutulması
   
 ---
@@ -27,57 +27,6 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 
 ---
 
-##  Yerel Kurulum Adımları
-
-Aşağıdaki adımlar backend'i (FastAPI + PostgreSQL) lokalde ayağa kaldırır. Tüm komutlar
-**`backend/` dizininden** çalıştırılır — uygulama `.env` dosyasını relative yoldan okur.
-
-**Ön koşullar:** Python 3.10+, çalışan bir PostgreSQL sunucusu ve proje için oluşturulmuş boş
-bir veritabanı.
-
-```bash
-# 1. Sanal ortam (proje kökünde)
-python -m venv .venv
-source .venv/bin/activate
-
-# 2. Bağımlılıklar
-pip install -r backend/requirements.txt
-#    Test suite'i (backend/scripts/tests) çalıştırmak için ek olarak: pip install pytest
-
-# 3. Ortam değişkenleri
-cd backend
-cp .env.example .env
-#    .env içindeki DATABASE_URL, SECRET_KEY, EMAIL_PEPPER_KEY doldurulur.
-#    Açıklamalar ve varsayılanlar için .env.example'a bakınız.
-
-# 4. Veritabanı şeması
-alembic upgrade head
-
-# 5. Sunucu
-uvicorn main:app --reload
-```
-
-Sunucu `http://127.0.0.1:8000` adresinde çalışır; `GET /health` sağlık kontrolü, `/docs`
-Swagger arayüzüdür.
-
-> **Not:** E-posta gönderimi henüz gerçek değil (`app/services/email_service.py` `print()`
-> stub'ı). Kayıt akışını lokalde denerken OTP kodu **backend konsoluna** yazılır.
-
-Testler `backend/` dizininden çalıştırılır (migrate edilmiş bir DATABASE_URL gerektirir,
-kalıcı satır bırakmaz):
-
-```bash
-python -m pytest scripts/tests
-```
-
-##  API Dokümantasyonu
-
-- **[docs/api-contract.md](docs/api-contract.md)** — API sözleşmesi: auth akışı, `Page[T]` liste
-  zarfı, maskeleme kuralları, review moderasyon döngüsü, hata gövdeleri ve bilinen kısıtlar.
-  Frontend entegrasyonuna buradan başlanır.
-- **[docs/openapi.json](docs/openapi.json)** — makine okunur OpenAPI şeması (tip üretimi için).
-- Canlı, etkileşimli dokümantasyon: sunucu çalışırken `http://127.0.0.1:8000/docs`.
-
 ## Veritabanı Şeması
  
 Aşağıda platformun temel varlık-ilişki diyagramı (ERD) yer almaktadır. Diyagramı canlı ve etkileşimli olarak görüntülemek için:
@@ -85,14 +34,6 @@ Aşağıda platformun temel varlık-ilişki diyagramı (ERD) yer almaktadır. Di
 **[Veritabanı Şemasını Görüntüle](https://golcuksinan.github.io/K-rs-/database-schema.html)**
  
 (veya `docs/database-schema.html` dosyasını indirip herhangi bir tarayıcıda açabilirsiniz)
- 
-### Temel Varlıklar
- 
-- **University / Faculty / Department / Course** — üniversite, fakülte, bölüm ve ders hiyerarşisi
-- **Professor / CourseProfessor** — bir hocanın hangi dersi hangi dönemde verdiği
-- **User** — platform kullanıcıları (e-posta doğrulamalı)
-- **Review** — kullanıcıların bir ders-hoca kombinasyonuna verdiği puanlar (öğretim, zorluk, adalet) ve yorum
-- **Report** — bir değerlendirmenin şikayet edilmesi durumunda tutulan kayıt
 
 ## 📄 Lisans
 
