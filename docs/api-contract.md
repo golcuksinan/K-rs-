@@ -163,8 +163,11 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
 
 ## 8. Rate limitler
 
-- Global **`100/minute`** (IP başına).
-- 5 auth ucunun her biri ayrıca **`5/minute`**.
+- Global **`20/second` + `100/minute`** (ikisi birden, IP başına). ⚠️ Saniyelik pencere aynı
+  zamanda **paralel istek sayısına tavandır**: aynı anda 20'den fazla çağrı açan bir ekran
+  fazlasından 429 alır. React StrictMode dev'de effect'leri iki kez tetiklediği için bu sayı
+  beklenenin iki katı olabilir.
+- 5 auth ucunun her biri ayrıca **`5/minute`** (saniyelik pencere bunlara uygulanmaz).
 - `GET /health` **muaf**.
 - In-memory (Redis yok) → multi-worker'da limit worker sayısı kadar katlanır; süreç yeniden
   başlayınca sayaç sıfırlanır.
