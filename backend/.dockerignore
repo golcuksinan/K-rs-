@@ -1,0 +1,9 @@
+.env
+.pau_cache/
+.pau_state.json
+.pau_state.json.bak
+scripts/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/

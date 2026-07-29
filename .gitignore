@@ -229,13 +229,7 @@ scripts/
 docs/PAÜ müh fak.html
 docs/paü bütün faks.html
 
-# Docker/deploy hazırlığı — gözden geçirilmedi, şimdilik commit edilmiyor
-docker-compose.yml
-/.env.example
-backend/Dockerfile
-backend/docker-entrypoint.sh
-backend/.dockerignore
-docs/deployment.md
+
 
 #Vscode
 .vscode/
