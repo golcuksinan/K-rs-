@@ -1,8 +1,24 @@
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.review import ReviewResponse
+
+
+class CourseProfessorCreate(BaseModel):
+    course_id: int
+    professor_id: int
+    term: str = Field(min_length=1)
+
+
+class CourseProfessorResponse(BaseModel):
+    id: int
+    course_id: int
+    professor_id: int
+    term: str
+
+    class Config:
+        from_attributes = True
 
 
 class CourseProfessorDetail(BaseModel):

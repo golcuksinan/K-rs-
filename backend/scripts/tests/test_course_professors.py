@@ -1,5 +1,5 @@
 """Router: app/api/course_professors.py (prefix /course-professors)"""
-from datetime import datetime
+from sqlalchemy import func
 
 from app.api.course_professors import _parse_term_key
 from app.models.course_professor import CourseProfessor
@@ -184,7 +184,7 @@ class TestListCourseProfessors:
 
     def test_soft_deleted_course_still_lists_pairings(self, client, db_session, valid_course, valid_professor):
         _make_pairings(db_session, valid_course.id, valid_professor.id, ["2025-2026 Güz"])
-        valid_course.deleted_at = datetime.utcnow()
+        valid_course.deleted_at = func.now()
         db_session.commit()
 
         resp = client.get("/course-professors", params={"course_id": valid_course.id})
@@ -221,3 +221,84 @@ class TestListCourseProfessors:
         assert first["total"] == second["total"] == 3
         assert [item["id"] for item in first["items"]] == sorted(ids)[:2]
         assert [item["id"] for item in second["items"]] == sorted(ids)[2:]
+
+
+class TestCreateCourseProfessor:
+    def _payload(self, course_id, professor_id, term="2025-2026 Güz"):
+        return {"course_id": course_id, "professor_id": professor_id, "term": term}
+
+    def test_requires_admin(self, client, valid_course, valid_professor):
+        resp = client.post("/course-professors", json=self._payload(valid_course.id, valid_professor.id))
+        assert resp.status_code == 401
+
+    def test_forbidden_for_student(self, client, student_headers, valid_course, valid_professor):
+        resp = client.post(
+            "/course-professors",
+            json=self._payload(valid_course.id, valid_professor.id),
+            headers=student_headers,
+        )
+        assert resp.status_code == 403
+
+    def test_create_success_as_admin(self, client, admin_headers, valid_course, valid_professor):
+        resp = client.post(
+            "/course-professors",
+            json=self._payload(valid_course.id, valid_professor.id),
+            headers=admin_headers,
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["course_id"] == valid_course.id
+        assert body["professor_id"] == valid_professor.id
+        assert body["term"] == "2025-2026 Güz"
+
+        detail = client.get(f"/course-professors/{body['id']}")
+        assert detail.status_code == 200
+
+    def test_invalid_course_id_rejected(self, client, admin_headers, valid_professor):
+        resp = client.post(
+            "/course-professors",
+            json=self._payload(999_999, valid_professor.id),
+            headers=admin_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_soft_deleted_course_rejected(self, client, db_session, admin_headers, valid_course, valid_professor):
+        valid_course.deleted_at = func.now()
+        db_session.commit()
+
+        resp = client.post(
+            "/course-professors",
+            json=self._payload(valid_course.id, valid_professor.id),
+            headers=admin_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_invalid_professor_id_rejected(self, client, admin_headers, valid_course):
+        resp = client.post(
+            "/course-professors",
+            json=self._payload(valid_course.id, 999_999),
+            headers=admin_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_duplicate_term_rejected(self, client, admin_headers, valid_course, valid_professor):
+        payload = self._payload(valid_course.id, valid_professor.id)
+        first = client.post("/course-professors", json=payload, headers=admin_headers)
+        assert first.status_code == 201
+
+        second = client.post("/course-professors", json=payload, headers=admin_headers)
+        assert second.status_code == 400
+
+    def test_same_pair_different_term_allowed(self, client, admin_headers, valid_course, valid_professor):
+        first = client.post(
+            "/course-professors",
+            json=self._payload(valid_course.id, valid_professor.id, term="2025-2026 Güz"),
+            headers=admin_headers,
+        )
+        second = client.post(
+            "/course-professors",
+            json=self._payload(valid_course.id, valid_professor.id, term="2025-2026 Bahar"),
+            headers=admin_headers,
+        )
+        assert first.status_code == 201
+        assert second.status_code == 201

@@ -78,6 +78,7 @@
   </ul>
   <h3>Tam unique / check kısıtları</h3>
   <ul>
+    <li><code>uq_course_professor_term</code> — <code>course_professors(course_id, professor_id, term)</code>: aynı ders/hoca/dönem eşleşmesi tek satırdır.</li>
     <li><code>uq_user_course_professor_review</code> — <code>reviews(user_id, course_professor_id)</code>: bir kullanıcı aynı ders-hoca eşleşmesine tek yorum yazar.</li>
     <li><code>uq_reporter_review_report</code> — <code>reports(reporter_id, review_id)</code>: aynı yorum bir kullanıcı tarafından tek kez şikâyet edilir.</li>
     <li><code>ck_course_professor_target_grade_range</code> — CHECK <code>target_grade_min &le; target_grade_max</code></li>

@@ -29,12 +29,58 @@ class TestRegister:
         assert entry.department_id == valid_department.id
         assert entry.enrollment_year == payload["enrollment_year"]
 
-    def test_register_duplicate_email_rejected(self, client, valid_department, student):
-        # student fixture zaten register+verify-otp sonrası oluşmuş bir User; email_hash'i
-        # doğrudan bilmiyoruz ama aynı plain email ile register denemesi 400 dönmeli.
+    def test_register_duplicate_email_returns_generic_response_without_otp(
+        self, client, db_session, valid_department, student, otp_capture
+    ):
+        # Kayıtlı adres için de yeni kayıtla AYNI yanıt döner (enumeration koruması):
+        # OTP üretilmez, EmailVerification satırı açılmaz.
+        from app.models.email_verification import EmailVerification
+
         payload = register_payload(valid_department.id, email=student["email"])
         resp = client.post("/auth/register", json=payload)
+        assert resp.status_code == 200
+        assert resp.json()["message"] == "Doğrulama kodu e-postanıza gönderildi"
+        assert "verification" not in otp_capture
+        assert db_session.query(EmailVerification).filter(
+            EmailVerification.email_hash == hash_email(payload["email"])
+        ).first() is None
+
+    def test_register_soft_deleted_department_rejected(self, client, db_session, valid_department):
+        from sqlalchemy import func
+
+        valid_department.deleted_at = func.now()
+        db_session.commit()
+
+        payload = register_payload(valid_department.id)
+        resp = client.post("/auth/register", json=payload)
         assert resp.status_code == 400
+
+    def test_register_department_must_belong_to_email_domain_university(
+        self, client, monkeypatch, valid_department, valid_university
+    ):
+        from app.api import auth as auth_module
+
+        # Haritayı fixture üniversitesinden FARKLI bir ada bağla -> çapraz kayıt reddedilir.
+        monkeypatch.setattr(
+            auth_module, "EMAIL_DOMAIN_UNIVERSITIES",
+            {"posta.pau.edu.tr": f"{valid_university.name} (başka)"},
+        )
+        resp = client.post("/auth/register", json=register_payload(valid_department.id))
+        assert resp.status_code == 400
+        assert "kayıt olunabilir" in resp.json()["detail"]
+
+    def test_register_department_of_matching_university_accepted(
+        self, client, monkeypatch, valid_department, valid_university, otp_capture
+    ):
+        from app.api import auth as auth_module
+
+        monkeypatch.setattr(
+            auth_module, "EMAIL_DOMAIN_UNIVERSITIES",
+            {"posta.pau.edu.tr": valid_university.name},
+        )
+        resp = client.post("/auth/register", json=register_payload(valid_department.id))
+        assert resp.status_code == 200
+        assert "verification" in otp_capture
 
     def test_register_non_edu_tr_email_rejected(self, client, valid_department):
         payload = register_payload(valid_department.id, email="ogrenci@gmail.com")

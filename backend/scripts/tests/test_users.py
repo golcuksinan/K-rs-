@@ -64,3 +64,26 @@ class TestGetCurrentUser:
         resp = client.get("/users/me", headers=admin_headers)
         assert resp.status_code == 200
         assert resp.json()["role"] == "admin"
+
+    def test_unverified_user_rejected(self, client, db_session, valid_department):
+        # Bugün normal akışta doğrulanmamış kullanıcı oluşmuyor; guard'ın testi için
+        # doğrudan DB'ye yazılır (bkz. deps.get_current_user).
+        from datetime import date
+
+        from app.core.security import create_access_token, hash_email, hash_password
+        from app.models.user import User
+
+        user = User(
+            email_hash=hash_email("dogrulanmamis@posta.pau.edu.tr"),
+            hashed_password=hash_password("sifre123"),
+            is_verified=False,
+            department_id=valid_department.id,
+            enrollment_year=date.today().year,
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+
+        headers = {"Authorization": f"Bearer {create_access_token(user.id)}"}
+        resp = client.get("/users/me", headers=headers)
+        assert resp.status_code == 403

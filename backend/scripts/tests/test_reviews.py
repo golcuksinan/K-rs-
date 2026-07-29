@@ -196,31 +196,10 @@ class TestUpdateReviewStatus:
         resp = client.patch("/reviews/999999/status", json={"status": "approved"}, headers=admin_headers)
         assert resp.status_code == 404
 
-    def test_approve_pending_edit_copies_shadow_fields_and_keeps_status_approved(
+    def test_reject_takes_down_review_even_with_pending_edit(
         self, client, admin_headers, student_headers, course_professor
     ):
         created = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
-        review_id = created.json()["id"]
-        client.patch(f"/reviews/{review_id}/status", json={"status": "approved"}, headers=admin_headers)
-
-        # Onaylanmış review'ı düzenle -> gölge alanlara yazılır, has_pending_edit True olur
-        client.patch(
-            f"/reviews/{review_id}",
-            json={"teaching_score": 1, "difficulty_score": 1, "fairness_score": 1, "comment": "düzenlendi"},
-            headers=student_headers,
-        )
-
-        resp = client.patch(f"/reviews/{review_id}/status", json={"status": "approved"}, headers=admin_headers)
-        assert resp.status_code == 200
-        body = resp.json()
-        assert body["status"] == "approved"
-        assert body["teaching_score"] == 1
-        assert body["comment"] == "düzenlendi"
-
-    def test_reject_pending_edit_discards_shadow_fields_keeps_original(
-        self, client, admin_headers, student_headers, course_professor
-    ):
-        created = client.post("/reviews", json=_review_payload(course_professor.id, teaching_score=5), headers=student_headers)
         review_id = created.json()["id"]
         client.patch(f"/reviews/{review_id}/status", json={"status": "approved"}, headers=admin_headers)
 
@@ -232,9 +211,68 @@ class TestUpdateReviewStatus:
 
         resp = client.patch(f"/reviews/{review_id}/status", json={"status": "rejected"}, headers=admin_headers)
         assert resp.status_code == 200
+        assert resp.json()["status"] == "rejected"
+
+        # gölge de temizlendi -> admin kuyruğunda görünmez
+        me = client.get("/reviews/me", headers=student_headers)
+        assert me.json()["items"][0]["has_pending_edit"] is False
+
+
+class TestUpdateReviewEditStatus:
+    def _approved_review_with_pending_edit(self, client, admin_headers, student_headers, course_professor_id):
+        created = client.post("/reviews", json=_review_payload(course_professor_id, teaching_score=5), headers=student_headers)
+        review_id = created.json()["id"]
+        client.patch(f"/reviews/{review_id}/status", json={"status": "approved"}, headers=admin_headers)
+        client.patch(
+            f"/reviews/{review_id}",
+            json={"teaching_score": 1, "difficulty_score": 1, "fairness_score": 1, "comment": "düzenlendi"},
+            headers=student_headers,
+        )
+        return review_id
+
+    def test_requires_admin(self, client, student_headers):
+        resp = client.patch("/reviews/1/edit-status", json={"status": "approved"}, headers=student_headers)
+        assert resp.status_code in (403, 404)
+
+    def test_nonexistent_review_returns_404(self, client, admin_headers):
+        resp = client.patch("/reviews/999999/edit-status", json={"status": "approved"}, headers=admin_headers)
+        assert resp.status_code == 404
+
+    def test_without_pending_edit_returns_400(self, client, admin_headers, student_headers, course_professor):
+        created = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        review_id = created.json()["id"]
+
+        resp = client.patch(f"/reviews/{review_id}/edit-status", json={"status": "approved"}, headers=admin_headers)
+        assert resp.status_code == 400
+
+    def test_approve_copies_shadow_fields_and_keeps_status_approved(
+        self, client, admin_headers, student_headers, course_professor
+    ):
+        review_id = self._approved_review_with_pending_edit(
+            client, admin_headers, student_headers, course_professor.id
+        )
+
+        resp = client.patch(f"/reviews/{review_id}/edit-status", json={"status": "approved"}, headers=admin_headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "approved"
+        assert body["teaching_score"] == 1
+        assert body["comment"] == "düzenlendi"
+        assert body["has_pending_edit"] is False
+
+    def test_reject_discards_shadow_fields_keeps_original(
+        self, client, admin_headers, student_headers, course_professor
+    ):
+        review_id = self._approved_review_with_pending_edit(
+            client, admin_headers, student_headers, course_professor.id
+        )
+
+        resp = client.patch(f"/reviews/{review_id}/edit-status", json={"status": "rejected"}, headers=admin_headers)
+        assert resp.status_code == 200
         body = resp.json()
         assert body["status"] == "approved"  # orijinal statüye dokunulmadı
         assert body["teaching_score"] == 5  # orijinal değer korundu
+        assert body["has_pending_edit"] is False
 
 
 class TestListMyReviews:
@@ -291,6 +329,23 @@ class TestUpdateMyReview:
         assert body["teaching_score"] == 2
         assert body["status"] == "pending"
         assert body["has_pending_edit"] is False
+
+    def test_editing_pending_review_retriggers_ai_moderation(
+        self, client, db_session, student_headers, course_professor, fake_ai_service
+    ):
+        created = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        review_id = created.json()["id"]
+
+        client.patch(
+            f"/reviews/{review_id}",
+            json={"teaching_score": 2, "difficulty_score": 2, "fairness_score": 2,
+                  "comment": f"düzenlendi {AI_TEST_APPROVE}"},
+            headers=student_headers,
+        )
+
+        from app.models.review import Review
+        review = db_session.query(Review).filter(Review.id == review_id).first()
+        assert review.status == "approved"
 
     def test_editing_approved_review_creates_pending_edit_without_changing_live_values(
         self, client, admin_headers, student_headers, course_professor

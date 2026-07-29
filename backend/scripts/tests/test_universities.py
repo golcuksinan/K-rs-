@@ -26,6 +26,27 @@ class TestListUniversities:
         resp = client.get("/universities", params={"search": valid_university.name})
         assert valid_university.id not in [u["id"] for u in resp.json()["items"]]
 
+    def test_search_wildcards_match_literally(self, client, db_session, valid_university):
+        # `%`/`_` joker değil literal karakter olarak aranır (like_pattern kaçışı).
+        import uuid
+
+        from app.models.university import University
+
+        marked = University(name=f"Yüzde %50 Üniversitesi-{uuid.uuid4().hex[:8]}", city="Denizli")
+        db_session.add(marked)
+        db_session.commit()
+        db_session.refresh(marked)
+
+        resp = client.get("/universities", params={"search": "%50 Üniversitesi"})
+        ids = [u["id"] for u in resp.json()["items"]]
+        assert marked.id in ids
+        assert valid_university.id not in ids
+
+    def test_search_only_wildcards_does_not_match_everything(self, client, valid_university):
+        resp = client.get("/universities", params={"search": "%%%%%%"})
+        assert resp.status_code == 200
+        assert resp.json()["total"] == 0
+
 
 class TestCreateUniversity:
     def test_create_requires_admin(self, client):

@@ -128,6 +128,15 @@ def _disable_rate_limiting():
     limiter.enabled = False
 
 
+@pytest.fixture(autouse=True)
+def _disable_email_domain_university_check(monkeypatch):
+    """Register'daki e-posta domain'i <-> üniversite eşleşme kontrolü varsayılan olarak kapalı:
+    fixture'lar rastgele adlı test üniversiteleri kurar, gerçek harita ("Pamukkale Üniversitesi")
+    hepsini reddederdi. Kontrolü test eden testler auth_module üzerinden kendi haritasını yazar.
+    Şema tarafındaki domain doğrulaması (is_valid_edu_tr_email) bundan etkilenmez, açık kalır."""
+    monkeypatch.setattr(auth_module, "EMAIL_DOMAIN_UNIVERSITIES", {})
+
+
 @pytest.fixture()
 def enable_rate_limiting():
     """Sadece rate limiting'i özel olarak test eden testler bunu ister."""
@@ -314,7 +323,7 @@ def otp_capture(monkeypatch):
 def expired_verification_factory(db_session):
     """Süresi dolmuş bir EmailVerification satırı oluşturan factory.
     Dönen dict: email/otp/entry — testler otp'yi doğrudan kullanabilir."""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     def _make(department_id=None, enrollment_year=None, otp="000000"):
         email = f"{_unique('expired')}@posta.pau.edu.tr"
@@ -325,7 +334,7 @@ def expired_verification_factory(db_session):
             hashed_password=hash_password(DEFAULT_PASSWORD),
             department_id=department_id,
             enrollment_year=enrollment_year or date.today().year,
-            expires_at=datetime.utcnow() - timedelta(minutes=1),
+            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
         )
         db_session.add(entry)
         db_session.commit()

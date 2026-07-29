@@ -13,7 +13,7 @@ from app.models.user import User
 from app.schemas.common import Page
 from app.schemas.department import DepartmentGroupResponse, DepartmentResponse, DepartmentCreate, DepartmentUpdate
 from app.schemas.faculty import FacultyResponse
-from app.api.common import PageParams, get_active_or_400, get_active_or_404, page, pagination, paginated
+from app.api.common import PageParams, get_active_or_400, get_active_or_404, like_pattern, page, pagination, paginated
 from app.api.deps import get_current_admin_user
 
 router = APIRouter(prefix="/departments", tags=["departments"])
@@ -37,7 +37,7 @@ def list_departments(
             Department.deleted_at.is_(None),
         )
         if search:
-            query = query.filter(Department.name.ilike(f"%{search}%"))
+            query = query.filter(Department.name.ilike(like_pattern(search), escape="\\"))
         return paginated(query.order_by(Department.name), params)
 
     if not search:
@@ -47,7 +47,7 @@ def list_departments(
         db.query(Department)
         .options(joinedload(Department.faculty))
         .filter(
-            Department.name.ilike(f"%{search}%"),
+            Department.name.ilike(like_pattern(search), escape="\\"),
             Department.deleted_at.is_(None),
         )
         .order_by(Department.name)

@@ -40,6 +40,15 @@ def paginated(query: SAQuery, params: PageParams) -> dict:
     return page(items, total, params)
 
 
+# ---------- Arama ----------
+
+def like_pattern(term: str) -> str:
+    """Kullanıcı girdisini `ilike` deseni için hazırlar: `%`/`_` joker olarak değil
+    literal olarak eşleşir. Kullanım: `.ilike(like_pattern(search), escape="\\\\")`."""
+    escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
 # ---------- Soft-delete doğrulaması ----------
 
 def get_active_or_400(db: Session, model: Type[Any], obj_id: int, field_name: str) -> Any:

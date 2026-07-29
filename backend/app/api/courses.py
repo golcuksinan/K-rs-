@@ -17,7 +17,7 @@ from app.models.faculty import Faculty
 from app.models.user import User
 from app.schemas.common import Page
 from app.schemas.course import CourseResponse, CourseCreate, CourseUpdate
-from app.api.common import PageParams, get_active_or_400, get_active_or_404, page, paginate, pagination
+from app.api.common import PageParams, get_active_or_400, get_active_or_404, like_pattern, page, paginate, pagination
 from app.api.deps import get_current_admin_user
 
 router = APIRouter(prefix="/courses", tags=["courses"])
@@ -68,8 +68,9 @@ def list_courses(
         query = query.filter(Course.department_id == department_id)
 
     if search:
+        pattern = like_pattern(search)
         query = query.filter(
-            (Course.name.ilike(f"%{search}%")) | (Course.code.ilike(f"%{search}%"))
+            Course.name.ilike(pattern, escape="\\") | Course.code.ilike(pattern, escape="\\")
         )
 
     courses, total = paginate(query.order_by(Course.name), params)

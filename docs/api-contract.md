@@ -29,7 +29,7 @@ cd backend
 
 | Uç | Gövde döner |
 |---|---|
-| `POST /auth/register` | `{message}` — OTP e-postaya gider, kullanıcı **henüz oluşmaz** |
+| `POST /auth/register` | `{message}` — OTP e-postaya gider, kullanıcı **henüz oluşmaz**. Adres zaten kayıtlıysa da **aynı** mesaj döner (enumeration koruması) — durum adres sahibine mail ile bildirilir, OTP üretilmez |
 | `POST /auth/verify-otp` | `{access_token, token_type: "bearer"}` — **kullanıcı burada oluşur** |
 | `POST /auth/login` | aynı token gövdesi |
 | `POST /auth/forgot-password` | `{message}` — adres kayıtlı olmasa da **aynı** mesaj (enumeration koruması) |
@@ -38,7 +38,9 @@ cd backend
 - Token: `Authorization: Bearer <token>`. Ömür **60 dk** (`ACCESS_TOKEN_EXPIRE_MINUTES`).
   **Refresh token yok** → 401 alınca yeniden login.
 - **Şifre değiştirme ucu yok** (bilinçli): akış forgot-password + reset-password (OTP) üzerinden.
-- Kısıtlar: e-posta **sadece `@posta.pau.edu.tr`**; şifre min 8 karakter + **en az 1 rakam**
+- Kısıtlar: e-posta **sadece `@posta.pau.edu.tr`** ve `department_id` o domain'in üniversitesine
+  (Pamukkale) ait olmak zorunda — çapraz seçim **400** "Bu e-posta adresiyle yalnızca … bölümlerine
+  kayıt olunabilir" (harita: `core/security.py` `EMAIL_DOMAIN_UNIVERSITIES`); şifre min 8 karakter + **en az 1 rakam**
   (register ve reset'te; **login'de doğrulanmaz**); OTP 6 hane, **10 dk** geçerli
   (`OTP_EXPIRE_MINUTES`), **5 yanlış deneme** sonrası kayıt silinir → baştan başlanır.
 - ⚠️ `verify-otp`'ye forgot-password kodu verilirse **400**:
@@ -69,8 +71,8 @@ Yetki üç değerden biri: `public` · `auth` (Bearer zorunlu) · `admin` (rol=a
 | `auth` | 5 ucun hepsi | — | — |
 | `universities` / `faculties` / `departments` / `courses` | `GET` (liste) | — | `POST`, `PATCH /{id}`, `DELETE /{id}` (soft-delete) |
 | `professors` | `GET` (liste), `GET /{id}`* | — | — |
-| `course-professors` | `GET` (liste), `GET /{id}`* | — | — |
-| `reviews` | `GET /reviews` | `POST`, `GET /me`, `PATCH /{id}`, `DELETE /{id}` | `GET /pending`, `PATCH /{id}/status` |
+| `course-professors` | `GET` (liste), `GET /{id}`* | — | `POST` |
+| `reviews` | `GET /reviews` | `POST`, `GET /me`, `PATCH /{id}`, `DELETE /{id}` | `GET /pending`, `PATCH /{id}/status`, `PATCH /{id}/edit-status` |
 | `reports` | — | `POST`, `GET /me` | `GET /pending`, `PATCH /{id}/status` |
 | `users` | — | `GET /me` | — |
 | — | `GET /health` | — | — |
@@ -86,9 +88,12 @@ Zorunlu filtre kuralları:
   kontrolü yok**), aksi halde 422.
 - `GET /course-professors` → `course_id` **zorunlu**; `term` verilmezse **en güncel dönem**
   otomatik seçilir.
+- `POST /course-professors` (admin) → `{course_id, professor_id, term}`. Aynı üçlü ikinci kez →
+  **400** (DB'de `uq_course_professor_term` unique constraint'i var).
 
 Arama davranışı: `search` `GET /faculties`/`GET /departments`/`GET /professors`'ta **ad** üzerinde;
 `GET /courses` ad **ve ders kodunda**, `GET /universities` ad **ve kısaltmada** (`short_name`) arar.
+`%` ve `_` joker değil **literal karakter** olarak eşleşir.
 
 Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek istisna
 `DELETE /reviews/{id}` — o gerçekten siler (aşağı bkz.).
@@ -111,10 +116,14 @@ Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek 
 - `status == "approved"` bir review `PATCH` edilirse **public hali değişmez**: yeni değerler
   `pending_*` alanlarına yazılır, `has_pending_edit: true` olur, admin onayı bekler.
   Frontend `has_pending_edit` true iken "değişiklik onay bekliyor" göstermeli.
-- `pending` / `rejected` olanlar **doğrudan** güncellenir ve tekrar `pending`'e döner.
-- Admin `PATCH /reviews/{id}/status` (`approved` | `rejected`): `has_pending_edit` true ise bunu
-  **edit onayı/reddi** olarak işler — approve'da gölge alanlar asıla kopyalanır, reject'te sadece
-  temizlenir; **her iki durumda da `status`'a dokunulmaz** (review `approved` kalır).
+- `pending` / `rejected` olanlar **doğrudan** güncellenir, tekrar `pending`'e döner ve AI
+  moderasyonu **yeniden tetiklenir** (create ile aynı döngü — polling yine gerekir).
+- Admin tarafında iki ayrı uç (ikisi de `{"status": "approved" | "rejected"}` alır):
+  - `PATCH /reviews/{id}/status` — review'un **kendisinin** onayı/reddi. Reject, bekleyen edit
+    olsa bile review'u komple yayından kaldırır (gölge alanlar da temizlenir).
+  - `PATCH /reviews/{id}/edit-status` — **bekleyen edit'in** onayı/reddi; `has_pending_edit`
+    false ise **400**. Approve gölge alanları asıla kopyalar, reject sadece temizler;
+    iki durumda da `status`'a dokunulmaz (review `approved` kalır).
 - `pending_*` ve `has_pending_edit` alanları sadece `GET /reviews/me` ve `GET /reviews/pending`
   yanıtlarında (`ReviewFullResponse`) döner; public `GET /reviews`'ta yoktur.
 

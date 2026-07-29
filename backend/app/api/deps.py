@@ -36,6 +36,14 @@ def get_current_user(
             detail="Kullanıcı bulunamadı",
         )
 
+    # Bugün doğrulanmamış kullanıcı yaratılmıyor (verify-otp is_verified=True yazar);
+    # guard ileride farklı bir yaratma yolu eklenirse yazma uçlarının açık kalmaması için.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="E-posta doğrulaması tamamlanmamış",
+        )
+
     return user
 
 def get_current_admin_user(
@@ -57,4 +65,7 @@ def get_optional_current_user(
     user_id = decode_access_token(credentials.credentials)
     if user_id is None:
         return None
-    return db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is not None and not user.is_verified:
+        return None
+    return user

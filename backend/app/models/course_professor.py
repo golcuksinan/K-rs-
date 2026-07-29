@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, SmallInteger, String, ForeignKey, CheckConstraint
+from sqlalchemy import Column, Integer, SmallInteger, String, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -20,6 +20,7 @@ class CourseProfessor(Base):
             "target_grade_min IS NULL OR target_grade_max IS NULL OR target_grade_min <= target_grade_max",
             name="ck_course_professor_target_grade_range",
         ),
+        UniqueConstraint("course_id", "professor_id", "term", name="uq_course_professor_term"),
     )
 
     course = relationship("Course", back_populates="course_professors")

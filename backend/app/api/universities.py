@@ -10,7 +10,7 @@ from app.models.university import University
 from app.models.user import User
 from app.schemas.common import Page
 from app.schemas.university import UniversityResponse, UniversityCreate, UniversityUpdate
-from app.api.common import PageParams, get_active_or_404, pagination, paginated
+from app.api.common import PageParams, get_active_or_404, like_pattern, pagination, paginated
 from app.api.deps import get_current_admin_user
 
 router = APIRouter(prefix="/universities", tags=["universities"])
@@ -24,10 +24,11 @@ def list_universities(
 ):
     query = db.query(University).filter(University.deleted_at.is_(None))
     if search:
+        pattern = like_pattern(search)
         query = query.filter(
             or_(
-                University.name.ilike(f"%{search}%"),
-                University.short_name.ilike(f"%{search}%"),
+                University.name.ilike(pattern, escape="\\"),
+                University.short_name.ilike(pattern, escape="\\"),
             )
         )
     return paginated(query.order_by(University.name), params)

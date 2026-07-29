@@ -578,6 +578,7 @@
           "reviews"
         ],
         "summary": "Update Review Status",
+        "description": "Review'un KENDİSİNİN onayı/reddi. Bekleyen edit'in kararı ayrı uçta (/edit-status);\nburada reject, edit beklese bile review'u komple yayından kaldırır.",
         "operationId": "update_review_status_reviews__review_id__status_patch",
         "security": [
           {
@@ -612,6 +613,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews/{review_id}/edit-status": {
+      "patch": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "Update Review Edit Status",
+        "description": "Bekleyen edit'in onayı/reddi. approve gölge alanları asıl alanlara kopyalar,\nreject sadece temizler; iki durumda da review.status'a dokunulmaz (approved kalır).",
+        "operationId": "update_review_edit_status_reviews__review_id__edit_status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewFullResponse"
                 }
               }
             }
@@ -862,36 +921,35 @@
         }
       }
     },
-    "/course-professors/{course_professor_id}": {
-      "get": {
+    "/course-professors": {
+      "post": {
         "tags": [
           "course-professors"
         ],
-        "summary": "Get Course Professor Detail",
-        "operationId": "get_course_professor_detail_course_professors__course_professor_id__get",
+        "summary": "Create Course Professor",
+        "operationId": "create_course_professor_course_professors_post",
         "security": [
           {
             "HTTPBearer": []
           }
         ],
-        "parameters": [
-          {
-            "name": "course_professor_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Course Professor Id"
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseProfessorCreate"
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CourseProfessorDetail"
+                  "$ref": "#/components/schemas/CourseProfessorResponse"
                 }
               }
             }
@@ -907,9 +965,7 @@
             }
           }
         }
-      }
-    },
-    "/course-professors": {
+      },
       "get": {
         "tags": [
           "course-professors"
@@ -977,6 +1033,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Page_CourseProfessorListItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/course-professors/{course_professor_id}": {
+      "get": {
+        "tags": [
+          "course-professors"
+        ],
+        "summary": "Get Course Professor Detail",
+        "operationId": "get_course_professor_detail_course_professors__course_professor_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_professor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Professor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseProfessorDetail"
                 }
               }
             }
@@ -2112,6 +2215,30 @@
         ],
         "title": "CourseCreate"
       },
+      "CourseProfessorCreate": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "professor_id": {
+            "type": "integer",
+            "title": "Professor Id"
+          },
+          "term": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "professor_id",
+          "term"
+        ],
+        "title": "CourseProfessorCreate"
+      },
       "CourseProfessorDetail": {
         "properties": {
           "id": {
@@ -2252,6 +2379,34 @@
           "avg_fairness"
         ],
         "title": "CourseProfessorListItem"
+      },
+      "CourseProfessorResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "professor_id": {
+            "type": "integer",
+            "title": "Professor Id"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "course_id",
+          "professor_id",
+          "term"
+        ],
+        "title": "CourseProfessorResponse"
       },
       "CourseProfessorSummary": {
         "properties": {

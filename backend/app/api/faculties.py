@@ -11,7 +11,7 @@ from app.models.university import University
 from app.models.user import User
 from app.schemas.common import Page
 from app.schemas.faculty import FacultyResponse, FacultyCreate, FacultyUpdate
-from app.api.common import PageParams, get_active_or_400, get_active_or_404, pagination, paginated
+from app.api.common import PageParams, get_active_or_400, get_active_or_404, like_pattern, pagination, paginated
 from app.api.deps import get_current_admin_user
 
 router = APIRouter(prefix="/faculties", tags=["faculties"])
@@ -29,7 +29,7 @@ def list_faculties(
         Faculty.deleted_at.is_(None),
     )
     if search:
-        query = query.filter(Faculty.name.ilike(f"%{search}%"))
+        query = query.filter(Faculty.name.ilike(like_pattern(search), escape="\\"))
     return paginated(query.order_by(Faculty.name), params)
 
 

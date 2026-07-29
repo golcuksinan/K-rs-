@@ -1,19 +1,26 @@
 import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
-from app.api.common import PageParams, page, paginate, pagination
-from app.api.deps import get_optional_current_user
+from app.api.common import PageParams, get_active_or_400, page, paginate, pagination
+from app.api.deps import get_current_admin_user, get_optional_current_user
 from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.course_professor import CourseProfessor
 from app.models.enums import UserRole
+from app.models.professor import Professor
 from app.models.user import User
 from app.schemas.common import Page
-from app.schemas.course_professor import CourseProfessorDetail, CourseProfessorListItem
+from app.schemas.course_professor import (
+    CourseProfessorCreate,
+    CourseProfessorDetail,
+    CourseProfessorListItem,
+    CourseProfessorResponse,
+)
 from app.services.ratings import APPROVED, EMPTY_RATING, rating_by_course_professor
 
 router = APIRouter(prefix="/course-professors", tags=["course-professors"])
@@ -28,6 +35,31 @@ def _parse_term_key(term: str) -> tuple[int, int]:
     start_year = int(match.group(1))
     season_rank = _SEASON_ORDER.get(match.group(2).lower(), -1)
     return (start_year, season_rank)
+
+@router.post("", response_model=CourseProfessorResponse, status_code=status.HTTP_201_CREATED)
+def create_course_professor(
+    payload: CourseProfessorCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin_user),
+):
+    get_active_or_400(db, Course, payload.course_id, "course_id")
+    if not db.query(Professor).filter(Professor.id == payload.professor_id).first():
+        raise HTTPException(status_code=400, detail="Geçersiz professor_id")
+
+    cp = CourseProfessor(
+        course_id=payload.course_id,
+        professor_id=payload.professor_id,
+        term=payload.term,
+    )
+    db.add(cp)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Bu ders/hoca/dönem eşleşmesi zaten var")
+    db.refresh(cp)
+    return cp
+
 
 @router.get("/{course_professor_id}", response_model=CourseProfessorDetail)
 def get_course_professor_detail(

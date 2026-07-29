@@ -42,6 +42,7 @@ source .venv/bin/activate
 
 # 2. Bağımlılıklar
 pip install -r backend/requirements.txt
+#    Test suite'i (backend/scripts/tests) çalıştırmak için ek olarak: pip install pytest
 
 # 3. Ortam değişkenleri
 cd backend
@@ -61,6 +62,13 @@ Swagger arayüzüdür.
 
 > **Not:** E-posta gönderimi henüz gerçek değil (`app/services/email_service.py` `print()`
 > stub'ı). Kayıt akışını lokalde denerken OTP kodu **backend konsoluna** yazılır.
+
+Testler `backend/` dizininden çalıştırılır (migrate edilmiş bir DATABASE_URL gerektirir,
+kalıcı satır bırakmaz):
+
+```bash
+python -m pytest scripts/tests
+```
 
 ##  API Dokümantasyonu
 

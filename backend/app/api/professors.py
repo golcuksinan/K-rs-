@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
-from app.api.common import PageParams, page, paginate, pagination
+from app.api.common import PageParams, like_pattern, page, paginate, pagination
 from app.api.deps import get_optional_current_user
 from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db
@@ -27,7 +27,7 @@ def list_professors(
     query = db.query(Professor)
     if search:
         # ⚠️ ILIKE Türkçe İ/ı eşleşmesi yapmaz (scraper'daki tr_casefold tuzağının arama karşılığı).
-        query = query.filter(Professor.full_name.ilike(f"%{search}%"))
+        query = query.filter(Professor.full_name.ilike(like_pattern(search), escape="\\"))
 
     professors, total = paginate(query.order_by(Professor.full_name), params)
 

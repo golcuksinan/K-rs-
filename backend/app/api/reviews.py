@@ -87,6 +87,7 @@ def list_my_reviews(
 def update_my_review(
     review_id: int,
     payload: ReviewUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -103,8 +104,9 @@ def update_my_review(
         review.pending_fairness_score = payload.fairness_score
         review.pending_comment = payload.comment
         review.has_pending_edit = True
+        db.commit()
     else:
-        # pending / rejected -> direkt güncellenir, tekrar onaya düşer
+        # pending / rejected -> direkt güncellenir, create ile aynı moderasyon döngüsüne girer
         review.teaching_score = payload.teaching_score
         review.difficulty_score = payload.difficulty_score
         review.fairness_score = payload.fairness_score
@@ -115,8 +117,9 @@ def update_my_review(
         review.pending_difficulty_score = None
         review.pending_fairness_score = None
         review.pending_comment = None
+        db.commit()
+        background_tasks.add_task(_run_moderation_background, review.id)
 
-    db.commit()
     db.refresh(review)
     return review
 
@@ -159,27 +162,51 @@ def update_review_status(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin_user),
 ):
+    """Review'un KENDİSİNİN onayı/reddi. Bekleyen edit'in kararı ayrı uçta (/edit-status);
+    burada reject, edit beklese bile review'u komple yayından kaldırır."""
     review = db.query(Review).filter(Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Değerlendirme bulunamadı")
 
-    if review.has_pending_edit:
-        # bu bir edit onayı/reddi
-        if payload.status == "approved":
-            review.teaching_score = review.pending_teaching_score
-            review.difficulty_score = review.pending_difficulty_score
-            review.fairness_score = review.pending_fairness_score
-            review.comment = review.pending_comment
-        # approve veya reject fark etmeksizin gölge temizlenir
+    review.status = payload.status
+    if payload.status == "rejected" and review.has_pending_edit:
+        # reddedilen review'un bekleyen edit'i anlamını yitirir, kuyruğda da kalmamalı
         review.pending_teaching_score = None
         review.pending_difficulty_score = None
         review.pending_fairness_score = None
         review.pending_comment = None
         review.has_pending_edit = False
-        # review.status zaten "approved" idi, dokunulmuyor
-    else:
-        # normal ilk review onayı/reddi
-        review.status = payload.status
+
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+@router.patch("/{review_id}/edit-status", response_model=ReviewFullResponse)
+def update_review_edit_status(
+    review_id: int,
+    payload: ReviewStatusUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin_user),
+):
+    """Bekleyen edit'in onayı/reddi. approve gölge alanları asıl alanlara kopyalar,
+    reject sadece temizler; iki durumda da review.status'a dokunulmaz (approved kalır)."""
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Değerlendirme bulunamadı")
+    if not review.has_pending_edit:
+        raise HTTPException(status_code=400, detail="Bu değerlendirmenin bekleyen bir düzenlemesi yok")
+
+    if payload.status == "approved":
+        review.teaching_score = review.pending_teaching_score
+        review.difficulty_score = review.pending_difficulty_score
+        review.fairness_score = review.pending_fairness_score
+        review.comment = review.pending_comment
+    review.pending_teaching_score = None
+    review.pending_difficulty_score = None
+    review.pending_fairness_score = None
+    review.pending_comment = None
+    review.has_pending_edit = False
 
     db.commit()
     db.refresh(review)
