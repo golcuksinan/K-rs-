@@ -8,7 +8,6 @@ def _validate_password_complexity(v: str) -> str:
         raise ValueError("Şifre en az bir rakam içermelidir")
     return v
 
-# ---------- Register ----------
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -44,8 +43,6 @@ class VerifyOTPRequest(BaseModel):
     otp: str = Field(min_length=6, max_length=6)
 
 
-# ---------- Login ----------
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -55,8 +52,6 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-
-# ---------- Şifremi unuttum ----------
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -72,8 +67,6 @@ class ResetPasswordRequest(BaseModel):
     def check_new_password(cls, v: str) -> str:
         return _validate_password_complexity(v)
 
-
-# ---------- Genel ----------
 
 class MessageResponse(BaseModel):
     message: str

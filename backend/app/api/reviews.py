@@ -18,7 +18,7 @@ from app.services.ai_service import moderate_review
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-# ---------- 0. Yardımcı fonksiyonlar ----------
+
 def _run_moderation_background(review_id: int):
     db = SessionLocal()
     try:
@@ -32,7 +32,6 @@ def _run_moderation_background(review_id: int):
     finally:
         db.close()
 
-# ---------- 1. Review oluştur ----------
 
 @router.post("", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
 def create_review(
@@ -121,7 +120,6 @@ def update_my_review(
     db.refresh(review)
     return review
 
-# ---------- 2. Review listele (onaylanmış olanlar, herkese açık) ----------
 
 @router.get("", response_model=Page[ReviewResponse])
 def list_reviews(
@@ -136,8 +134,6 @@ def list_reviews(
 
     return paginated(query.order_by(Review.created_at.desc()), params)
 
-
-# ---------- 3. Bekleyen review'ları listele (sadece admin) ----------
 
 @router.get("/pending", response_model=Page[ReviewFullResponse])
 def list_pending_reviews(
@@ -155,8 +151,6 @@ def list_pending_reviews(
 
     return paginated(query.order_by(Review.created_at.asc()), params)
 
-
-# ---------- 4. Review durumunu güncelle (sadece admin) ----------
 
 @router.patch("/{review_id}/status", response_model=ReviewResponse)
 def update_review_status(

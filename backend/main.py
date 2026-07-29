@@ -9,7 +9,15 @@ from app.db import base  # noqa: F401
 from app.core.limiter import limiter, NestedRouteSlowAPIMiddleware
 from app.api import auth, reviews, reports, course_professors, professors, universities, departments, courses, users, faculties
 
-app = FastAPI(title="Kürsü API")
+app = FastAPI(
+    title="Kürsü API",
+    version="0.1.0",
+    description=(
+        "Anonim ders ve akademisyen değerlendirme platformunun API'si. "
+        "Zarflar, akışlar, maskeleme ve hata gövdeleri gibi bu şemadan okunamayan "
+        "kurallar için `docs/api-contract.md`."
+    ),
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

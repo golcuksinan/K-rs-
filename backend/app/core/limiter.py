@@ -8,6 +8,10 @@ from starlette.responses import Response
 from starlette.routing import BaseRoute, Match
 from starlette.types import Scope
 
+# ⚠️ Sayaçlar süreç içinde tutulur: slowapi'ye paylaşımlı storage verilmedi (projede Redis yok,
+# slowapi de Postgres desteklemiyor). Bu yüzden API **tek worker** ile çalıştırılmak zorunda —
+# N worker'ın her biri kendi sayacını tutar, efektif limit sessizce N katına çıkar. Ölçekleme
+# önce paylaşımlı bir limiter backend'i gerektirir; `--workers`/`--scale` ile çoğaltılmamalı.
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 

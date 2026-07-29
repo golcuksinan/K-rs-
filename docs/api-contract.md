@@ -87,8 +87,8 @@ Zorunlu filtre kuralları:
 - `GET /course-professors` → `course_id` **zorunlu**; `term` verilmezse **en güncel dönem**
   otomatik seçilir.
 
-Arama davranışı: `GET /courses` ve `GET /faculties`/`GET /departments`/`GET /professors`'ta
-`search` **ad** üzerinde; `GET /courses` ayrıca **ders kodunda** da arar.
+Arama davranışı: `search` `GET /faculties`/`GET /departments`/`GET /professors`'ta **ad** üzerinde;
+`GET /courses` ad **ve ders kodunda**, `GET /universities` ad **ve kısaltmada** (`short_name`) arar.
 
 Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek istisna
 `DELETE /reviews/{id}` — o gerçekten siler (aşağı bkz.).
@@ -169,9 +169,11 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
 - Gruplama dalında ham sorguya **500 satırlık** tavan var (`GROUP_SEARCH_ROW_CAP`); çok geniş
   aramalarda sonuç kırpılır.
 - Farklı yazılmış ama anlamca aynı bölüm isimleri **ayrı grup** kalır (normalize edilmiyor).
-- **Mevcut veri:** 220 üniversite / 2129 fakülte / 12281 bölüm; ama ders + hoca verisi **sadece
-  PAÜ Bilgisayar Mühendisliği** için var (215 ders, 140 hoca, 482 eşleşme). Diğer bölümlerde ders
-  listesi **boş** gelir → boş durum (empty state) tasarımı şart.
+- **Mevcut veri:** 220 üniversite / 2130 fakülte / 12297 bölüm. Ders + hoca verisi **yalnızca
+  PAÜ** için var (139 lisans programı; 16.253 ders, 1.650 hoca, 37.165 ders-hoca eşleşmesi) —
+  diğer üniversitelerin bölümlerinde ders listesi **boş** gelir. Ayrıca PAÜ derslerinin
+  **5.322'sinde hiç hoca yok** (EBS'de o dersin şubesi açılmamış), yani dolu bir bölümde bile
+  boş ders detayı görülebilir → boş durum (empty state) tasarımı şart.
 - Üniversitelerin `city` alanı gerçek veri değil, hepsi `"Bilinmiyor"`.
 - Ortalamalar **her zaman** yalnızca `approved` review'lardan hesaplanır (admin görüntülemesinde
   bile); review **listesi** admin'e hepsini gösterir.
@@ -188,7 +190,7 @@ göre yazar; düzeltmeler ayrı iş olarak sıraya girer.
 3. **422'de `detail` bazen dizi bazen string.** → Kalıcı çözüm ortak hata zarfı.
 4. **`GET /departments` union döner** → OpenAPI'de `anyOf`, tip üretimini (codegen) zorlaştırıyor.
    → Gruplama ayrı uca alınabilir (`/departments/grouped`).
-5. **`FastAPI(title="Kürsü API")`'de `version`/`description` yok.** `info.version` FastAPI
-   varsayılanı `"0.1.0"` olarak çıkıyor (gerçek sürüm değil). → Bilinçli `version` + kısa
-   `description` verilmeli.
-6. **`email_service.py` `print()` stub** — lokalde OTP konsoldan okunuyor. → Gerçek SMTP (DevOps).
+5. **`email_service.py` `print()` stub** — lokalde OTP konsoldan okunuyor. → Gerçek SMTP (DevOps).
+
+`info.version` = **`0.1.0`** artık bilinçli: 0.x, "sözleşme kırılabilir" demek ve yukarıdaki
+maddeler kapandıkça kırılacak. İlk kararlı sürümde 1.0.0'a çıkar.

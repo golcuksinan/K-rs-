@@ -25,7 +25,8 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 
 MIN_SEARCH_LENGTH = 2
 
-# department_id verilmediğinde tüm hiyerarşi zinciri tek sorguda çekilir (N+1 olmasın).
+# CourseResponse tüm zinciri (bölüm/fakülte/üniversite) döndürdüğü için her sorguda önden
+# çekilir; ilişkiler lazy bırakılırsa liste ucu satır başına 3 ek sorgu atar (N+1).
 _CHAIN = joinedload(Course.department).joinedload(Department.faculty).joinedload(Faculty.university)
 
 

@@ -2,6 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kürsü API",
+    "description": "Anonim ders ve akademisyen değerlendirme platformunun API'si. Zarflar, akışlar, maskeleme ve hata gövdeleri gibi bu şemadan okunamayan kurallar için `docs/api-contract.md`.",
     "version": "0.1.0"
   },
   "paths": {

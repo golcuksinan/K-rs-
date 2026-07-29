@@ -1,3 +1,11 @@
+"""Tüm modelleri tek noktadan import eder.
+
+⚠️ Aşağıdaki importlar kullanılmıyor GİBİ görünür ama silinemez: alembic autogenerate
+şemayı `Base.metadata`'dan okur (import edilmeyen model migration'a girmez) ve SQLAlchemy
+`relationship("Faculty")` gibi string referansları ancak tüm sınıflar register edildikten
+sonra çözebilir — eksik import mapper configure sırasında InvalidRequestError verir.
+"""
+
 from app.db.base_class import Base
 
 from app.models.university import University

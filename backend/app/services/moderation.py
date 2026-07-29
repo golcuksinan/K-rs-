@@ -11,7 +11,6 @@ class ModerationStatus(str, enum.Enum):
     REJECTED = "rejected"
     PENDING = "pending"
 
-# Zararlı kabul edilecek etiket isimleri
 TOXIC_LABELS = {"toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate"}
 
 # Üç bantlı karar eşikleri: > REJECT_THRESHOLD reddedilir, >= PENDING_THRESHOLD
@@ -44,10 +43,9 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
 
     hf_url = _normalize_hf_url(settings.HF_MODEL_URL)
     headers = {"Authorization": f"Bearer {settings.HF_API_TOKEN}"}
-    payload = {"inputs": text[:1000]}  # Uzun metinleri kesip gönderiyoruz
+    payload = {"inputs": text[:1000]}
 
     try:
-        # Asenkron HTTP İsteği (Max 3 saniye bekle)
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 hf_url,
@@ -84,7 +82,7 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
         return ModerationStatus.PENDING
 
     except Exception as e:
-        # Bağlantı koptu, timeout oldu veya HF servis dışı
         logger.error(f"Hugging Face Moderation Service Error: {str(e)}")
-        # Graceful Fallback: Sistemi kırmamak için manuel onaya düşür
+        # Hata yukarı fırlatılmaz: moderasyon servisi review yazma akışını kırmamalı,
+        # karar veremediğimiz yorum insan onayına düşer.
         return ModerationStatus.PENDING

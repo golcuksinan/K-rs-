@@ -19,8 +19,8 @@ from app.api.deps import get_current_admin_user
 router = APIRouter(prefix="/departments", tags=["departments"])
 
 # Gruplama dalı satırları Python'da toplamak zorunda (grup = bölüm adı, SQL'de sayfalanamıyor).
-# Bu yüzden ham satır sayısına sabit bir güvenlik tavanı konuyor: search="a" 12281 bölümün
-# önemli kısmını eşleştirebilir.
+# Bu yüzden ham satır sayısına sabit bir güvenlik tavanı konuyor: search="a" gibi geniş bir
+# terim on binlerce bölüm satırının büyük kısmını eşleştirebilir.
 GROUP_SEARCH_ROW_CAP = 500
 
 

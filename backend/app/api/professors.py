@@ -18,7 +18,6 @@ from app.services.ratings import APPROVED, EMPTY_RATING, rating_by_course_profes
 router = APIRouter(prefix="/professors", tags=["professors"])
 
 
-# ⚠️ Sabit path olmasa da liste ucu "/{professor_id}"den ÖNCE tanımlanmalı (FastAPI sıra kuralı).
 @router.get("", response_model=Page[ProfessorListItem])
 def list_professors(
     search: Optional[str] = Query(default=None, description="Hoca adında arama"),

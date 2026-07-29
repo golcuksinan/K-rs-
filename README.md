@@ -23,7 +23,7 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 | **Frontend** | React.js + Tailwind CSS | Arama arayüzü, hoca detay sayfalarının render edilmesi |
 | **Backend** | FastAPI | Yüksek performanslı, asenkron API yapısı ve otomatik Swagger/OpenAPI dokümantasyonu |
 | **Veritabanı** | PostgreSQL | Hocalar, dersler, yorumlar ve puanlar arasındaki ilişkisel veri yapısının yönetimi |
-| **Yapay Zeka** | GPT-4o-mini / Hugging Face | Yorumların duygu analizi, küfür/hakaret filtrelemesi |
+| **Yapay Zeka** | Hugging Face — `unitary/toxic-bert` | Yorumların toksisite analizi, küfür/hakaret içerenlerin otomatik moderasyonu |
 
 ---
 
@@ -80,7 +80,7 @@ Aşağıda platformun temel varlık-ilişki diyagramı (ERD) yer almaktadır. Di
  
 ### Temel Varlıklar
  
-- **University / Department / Course** — üniversite, bölüm ve ders hiyerarşisi
+- **University / Faculty / Department / Course** — üniversite, fakülte, bölüm ve ders hiyerarşisi
 - **Professor / CourseProfessor** — bir hocanın hangi dersi hangi dönemde verdiği
 - **User** — platform kullanıcıları (e-posta doğrulamalı)
 - **Review** — kullanıcıların bir ders-hoca kombinasyonuna verdiği puanlar (öğretim, zorluk, adalet) ve yorum

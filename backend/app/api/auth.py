@@ -32,7 +32,6 @@ def cleanup_expired_verifications(db: Session) -> None:
     ).delete(synchronize_session=False)
     db.commit()
 
-# ---------- 1. Register ----------
 
 @router.post("/register", response_model=MessageResponse)
 @limiter.limit("5/minute")
@@ -71,8 +70,6 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
     send_verification_email(entry.email_plain, otp)
     return MessageResponse(message="Doğrulama kodu e-postanıza gönderildi")
 
-
-# ---------- 2. Verify OTP ----------
 
 @router.post("/verify-otp", response_model=TokenResponse)
 @limiter.limit("5/minute")
@@ -125,8 +122,6 @@ def verify_otp_endpoint(request: Request, payload: VerifyOTPRequest, db: Session
     return TokenResponse(access_token=token)
 
 
-# ---------- 3. Login ----------
-
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
@@ -139,8 +134,6 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
     token = create_access_token(user.id)
     return TokenResponse(access_token=token)
 
-
-# ---------- 4. Forgot password ----------
 
 @router.post("/forgot-password", response_model=MessageResponse)
 @limiter.limit("5/minute")
@@ -177,8 +170,6 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Sessio
     send_reset_email(entry.email_plain, otp)
     return generic_response
 
-
-# ---------- 5. Reset password ----------
 
 @router.post("/reset-password", response_model=MessageResponse)
 @limiter.limit("5/minute")

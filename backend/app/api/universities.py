@@ -33,8 +33,6 @@ def list_universities(
     return paginated(query.order_by(University.name), params)
 
 
-# ---------- Admin: oluştur ----------
-
 @router.post("", response_model=UniversityResponse, status_code=status.HTTP_201_CREATED)
 def create_university(
     payload: UniversityCreate,
@@ -51,8 +49,6 @@ def create_university(
     db.refresh(university)
     return university
 
-
-# ---------- Admin: güncelle ----------
 
 @router.patch("/{university_id}", response_model=UniversityResponse)
 def update_university(
@@ -74,8 +70,6 @@ def update_university(
     db.refresh(university)
     return university
 
-
-# ---------- Admin: sil (soft delete) ----------
 
 @router.delete("/{university_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_university(

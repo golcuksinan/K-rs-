@@ -9,6 +9,5 @@ passlib[bcrypt]
 bcrypt==4.0.1
 python-dotenv
 pydantic[email]
-requests
 slowapi==0.1.10
 httpx>=0.24.0

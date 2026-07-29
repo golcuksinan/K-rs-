@@ -4,8 +4,6 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
-# ---------- Create ----------
-
 class ReviewCreate(BaseModel):
     course_professor_id: int
     teaching_score: int = Field(ge=1, le=5)
@@ -14,16 +12,12 @@ class ReviewCreate(BaseModel):
     comment: Optional[str] = Field(default=None, max_length=2000)
 
 
-# ---------- [YENİ] Düzenleme ----------
-
 class ReviewUpdate(BaseModel):
     teaching_score: int = Field(ge=1, le=5)
     difficulty_score: int = Field(ge=1, le=5)
     fairness_score: int = Field(ge=1, le=5)
     comment: Optional[str] = Field(default=None, max_length=2000)
 
-
-# ---------- Response (public) ----------
 
 class ReviewResponse(BaseModel):
     id: int
@@ -40,8 +34,8 @@ class ReviewResponse(BaseModel):
         from_attributes = True
 
 
-# ---------- [YENİ] Response (kullanıcının kendisi + admin, edit karşılaştırması için) ----------
-
+# Yalnızca review'un sahibine ve admin'e döner; gölge alanlar edit'in öncesi/sonrası
+# karşılaştırılabilsin diye taşınır, public ReviewResponse'ta bulunmaz.
 class ReviewFullResponse(ReviewResponse):
     has_pending_edit: bool
     pending_teaching_score: Optional[int]
@@ -49,8 +43,6 @@ class ReviewFullResponse(ReviewResponse):
     pending_fairness_score: Optional[int]
     pending_comment: Optional[str]
 
-
-# ---------- Admin: status güncelleme ----------
 
 class ReviewStatusUpdate(BaseModel):
     status: Literal["approved", "rejected"]

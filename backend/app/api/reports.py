@@ -14,8 +14,6 @@ from app.api.deps import get_current_user, get_current_admin_user
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
-# ---------- 1. Report oluştur (giriş yapmış herhangi bir kullanıcı) ----------
-
 @router.post("", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
 def create_report(
     payload: ReportCreate,
@@ -46,8 +44,6 @@ def create_report(
     return report
 
 
-# ---------- 2. Bekleyen report'ları listele (sadece admin) ----------
-
 @router.get("/pending", response_model=Page[ReportResponse])
 def list_pending_reports(
     params: PageParams = Depends(pagination),
@@ -61,8 +57,6 @@ def list_pending_reports(
     )
     return paginated(query, params)
 
-
-# ---------- 3. Report durumunu güncelle (sadece admin) ----------
 
 @router.patch("/{report_id}/status", response_model=ReportResponse)
 def update_report_status(
@@ -80,7 +74,7 @@ def update_report_status(
     db.refresh(report)
     return report
 
-#---------- 4. Kendi report'larını listele----------
+
 @router.get("/me", response_model=Page[ReportResponse])
 def list_my_reports(
     params: PageParams = Depends(pagination),
