@@ -221,6 +221,9 @@ __marimo__/
 backend/scripts/*
 !backend/scripts/tests/
 
+# Seed snapshot'ı: veri dosyası git'te tutulmuyor (disk + Drive), backend/seeds/ script'leri takipte
+backend/seeds/*.sqlite
+
 # PAÜ scraper cache ve seed_pau_all.py --resume state'i (ikisi de cwd'ye göreli oluşuyor)
 .pau_cache/
 .pau_state.json
