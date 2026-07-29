@@ -181,7 +181,7 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
 - Gruplama dalında ham sorguya **500 satırlık** tavan var (`GROUP_SEARCH_ROW_CAP`); çok geniş
   aramalarda sonuç kırpılır.
 - Farklı yazılmış ama anlamca aynı bölüm isimleri **ayrı grup** kalır (normalize edilmiyor).
-- **Mevcut veri:** 220 üniversite / 2130 fakülte / 12297 bölüm. Ders + hoca verisi **yalnızca
+- **Mevcut veri:** 219 üniversite / 2127 fakülte / 12273 bölüm. Ders + hoca verisi **yalnızca
   PAÜ** için var (139 lisans programı; 16.253 ders, 1.650 hoca, 37.165 ders-hoca eşleşmesi) —
   diğer üniversitelerin bölümlerinde ders listesi **boş** gelir.
 - ⚠️ **PAÜ derslerinin 5.322'sinde (%33) hiç hoca yok** — EBS'de o dersin şubesi hiç açılmamış.
@@ -194,7 +194,8 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
   (ortak seçmeli havuzu). Şubeyi yalnızca dersi açan bölüm taşıdığı için aramada aynı ders adı
   biri `professor_count > 0`, diğeri `0` olan iki satır olarak çıkabilir; ikisinin yorumları
   **ayrıdır**. Aramada `professor_count`'u yüksek olanı öne almak mantıklı.
-- Üniversitelerin `city` alanı gerçek veri değil, hepsi `"Bilinmiyor"`.
+- Üniversitelerin `city` alanı gerçek veri (YÖK Atlas). KKTC/yurtdışı üniversitelerde biçim
+  `"Lefkoşa (KKTC)"` / `"Bakü (Azerbaycan)"` — düz il adı varsayılmamalı.
 - Ortalamalar **her zaman** yalnızca `approved` review'lardan hesaplanır (admin görüntülemesinde
   bile); review **listesi** admin'e hepsini gösterir.
 
