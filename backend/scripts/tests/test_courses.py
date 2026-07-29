@@ -70,6 +70,73 @@ class TestListCourses:
         assert valid_course.id not in [c["id"] for c in resp.json()["items"]]
 
 
+class TestProfessorCount:
+    """professor_count = tekil hoca sayısı; hocasız dersleri ayırt etmek için (PAÜ verisinde
+    16.253 dersin 5.322'sinde hiç course_professor yok)."""
+
+    @staticmethod
+    def _item(resp, course_id):
+        return next(c for c in resp.json()["items"] if c["id"] == course_id)
+
+    def test_zero_when_course_has_no_professor(self, client, valid_course, valid_department):
+        resp = client.get("/courses", params={"department_id": valid_department.id})
+        assert self._item(resp, valid_course.id)["professor_count"] == 0
+
+    def test_counts_assigned_professor(self, client, course_professor, valid_course, valid_department):
+        resp = client.get("/courses", params={"department_id": valid_department.id})
+        assert self._item(resp, valid_course.id)["professor_count"] == 1
+
+    def test_same_professor_in_two_terms_counted_once(
+        self, client, db_session, course_professor, valid_course, valid_professor, valid_department
+    ):
+        from app.models.course_professor import CourseProfessor
+
+        db_session.add(
+            CourseProfessor(course_id=valid_course.id, professor_id=valid_professor.id, term="2024-Güz")
+        )
+        db_session.commit()
+
+        resp = client.get("/courses", params={"department_id": valid_department.id})
+        assert self._item(resp, valid_course.id)["professor_count"] == 1
+
+    def test_two_professors_counted_separately(
+        self, client, db_session, course_professor, valid_course, valid_department
+    ):
+        from app.models.course_professor import CourseProfessor
+        from app.models.professor import Professor
+
+        other = Professor(full_name="İkinci Test Hoca")
+        db_session.add(other)
+        db_session.commit()
+        db_session.add(
+            CourseProfessor(course_id=valid_course.id, professor_id=other.id, term="2025-Güz")
+        )
+        db_session.commit()
+
+        resp = client.get("/courses", params={"department_id": valid_department.id})
+        assert self._item(resp, valid_course.id)["professor_count"] == 2
+
+    def test_global_search_also_returns_count(self, client, course_professor, valid_course):
+        resp = client.get("/courses", params={"search": valid_course.code})
+        assert self._item(resp, valid_course.id)["professor_count"] == 1
+
+    def test_create_returns_zero(self, client, admin_headers, valid_department):
+        resp = client.post(
+            "/courses",
+            json={"department_id": valid_department.id, "name": "Sayaç Dersi", "code": "CNT101"},
+            headers=admin_headers,
+        )
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["professor_count"] == 0
+
+    def test_patch_keeps_existing_count(self, client, admin_headers, course_professor, valid_course):
+        resp = client.patch(
+            f"/courses/{valid_course.id}", json={"name": "Sayaç Sonrası Ad"}, headers=admin_headers
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["professor_count"] == 1
+
+
 class TestCreateCourse:
     def test_create_requires_admin(self, client, valid_department):
         resp = client.post(

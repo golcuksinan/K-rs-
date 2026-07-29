@@ -183,9 +183,17 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
 - Farklı yazılmış ama anlamca aynı bölüm isimleri **ayrı grup** kalır (normalize edilmiyor).
 - **Mevcut veri:** 220 üniversite / 2130 fakülte / 12297 bölüm. Ders + hoca verisi **yalnızca
   PAÜ** için var (139 lisans programı; 16.253 ders, 1.650 hoca, 37.165 ders-hoca eşleşmesi) —
-  diğer üniversitelerin bölümlerinde ders listesi **boş** gelir. Ayrıca PAÜ derslerinin
-  **5.322'sinde hiç hoca yok** (EBS'de o dersin şubesi açılmamış), yani dolu bir bölümde bile
-  boş ders detayı görülebilir → boş durum (empty state) tasarımı şart.
+  diğer üniversitelerin bölümlerinde ders listesi **boş** gelir.
+- ⚠️ **PAÜ derslerinin 5.322'sinde (%33) hiç hoca yok** — EBS'de o dersin şubesi hiç açılmamış.
+  Dolu bir bölümde bile boş ders detayı görülebilir; bazı bölümlerde oran %90'ın üstünde.
+  `GET /courses` her ders için **`professor_count`** döner (tekil hoca sayısı; aynı hocanın farklı
+  dönemleri tek sayılır). `0` olan ders açıldığında **hiçbir şey yoktur** — ne hoca ne yorum,
+  yorum da yazılamaz. Boş durum (empty state) tasarımı şart; sıralama/soluklaştırma bu alanla
+  yapılır. Uç bunları **gizlemez**, kararı frontend verir.
+- ⚠️ Aynı ders birden çok bölümün müfredatında olabilir ve **her bölümde ayrı `Course` kaydıdır**
+  (ortak seçmeli havuzu). Şubeyi yalnızca dersi açan bölüm taşıdığı için aramada aynı ders adı
+  biri `professor_count > 0`, diğeri `0` olan iki satır olarak çıkabilir; ikisinin yorumları
+  **ayrıdır**. Aramada `professor_count`'u yüksek olanı öne almak mantıklı.
 - Üniversitelerin `city` alanı gerçek veri değil, hepsi `"Bilinmiyor"`.
 - Ortalamalar **her zaman** yalnızca `approved` review'lardan hesaplanır (admin görüntülemesinde
   bile); review **listesi** admin'e hepsini gösterir.

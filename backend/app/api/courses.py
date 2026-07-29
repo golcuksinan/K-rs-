@@ -12,6 +12,7 @@ from app.core.masking import (
 )
 from app.db.session import get_db
 from app.models.course import Course
+from app.models.course_professor import CourseProfessor
 from app.models.department import Department
 from app.models.faculty import Faculty
 from app.models.user import User
@@ -30,7 +31,21 @@ MIN_SEARCH_LENGTH = 2
 _CHAIN = joinedload(Course.department).joinedload(Department.faculty).joinedload(Faculty.university)
 
 
-def _to_response(course: Course) -> CourseResponse:
+def _professor_counts(db: Session, course_ids: list[int]) -> dict[int, int]:
+    """Ders id -> tekil hoca sayısı, tek sorguda. Satır değil hoca sayılır: aynı hocanın farklı
+    dönemleri tek sayılır (`/professors`'daki course_count ile aynı kural)."""
+    if not course_ids:
+        return {}
+    rows = (
+        db.query(CourseProfessor.course_id, func.count(func.distinct(CourseProfessor.professor_id)))
+        .filter(CourseProfessor.course_id.in_(course_ids))
+        .group_by(CourseProfessor.course_id)
+        .all()
+    )
+    return dict(rows)
+
+
+def _to_response(course: Course, professor_count: int) -> CourseResponse:
     department = course.department
     faculty = department.faculty
     university = faculty.university
@@ -38,6 +53,7 @@ def _to_response(course: Course) -> CourseResponse:
         id=course.id,
         name=course.name,
         code=course.code,
+        professor_count=professor_count,
         department_id=course.department_id,
         department_name=masked_name(department.deleted_at, department.name, DELETED_DEPARTMENT),
         faculty_id=faculty.id,
@@ -74,8 +90,9 @@ def list_courses(
         )
 
     courses, total = paginate(query.order_by(Course.name), params)
+    counts = _professor_counts(db, [c.id for c in courses])
 
-    return page([_to_response(c) for c in courses], total, params)
+    return page([_to_response(c, counts.get(c.id, 0)) for c in courses], total, params)
 
 
 @router.post("", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
@@ -94,7 +111,7 @@ def create_course(
         db.rollback()
         raise HTTPException(status_code=400, detail="Bu bölümde bu isimde bir ders zaten var")
     db.refresh(course)
-    return _to_response(course)
+    return _to_response(course, 0)
 
 
 @router.patch("/{course_id}", response_model=CourseResponse)
@@ -119,7 +136,7 @@ def update_course(
         db.rollback()
         raise HTTPException(status_code=400, detail="Bu bölümde bu isimde bir ders zaten var")
     db.refresh(course)
-    return _to_response(course)
+    return _to_response(course, _professor_counts(db, [course.id]).get(course.id, 0))
 
 
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)

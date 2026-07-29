@@ -2491,6 +2491,10 @@
             "type": "string",
             "title": "Code"
           },
+          "professor_count": {
+            "type": "integer",
+            "title": "Professor Count"
+          },
           "department_id": {
             "type": "integer",
             "title": "Department Id"
@@ -2544,6 +2548,7 @@
           "id",
           "name",
           "code",
+          "professor_count",
           "department_id",
           "department_name",
           "faculty_id",

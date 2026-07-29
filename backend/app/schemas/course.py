@@ -7,6 +7,7 @@ class CourseResponse(BaseModel):
     id: int
     name: str
     code: str
+    professor_count: int
     department_id: int
     department_name: str
     faculty_id: int
