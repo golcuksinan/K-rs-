@@ -74,20 +74,22 @@
     <li><code>uq_university_name_active</code> — <code>universities(name)</code> WHERE <code>deleted_at IS NULL</code></li>
     <li><code>uq_university_faculty_name_active</code> — <code>faculties(university_id, name)</code> WHERE <code>deleted_at IS NULL</code></li>
     <li><code>uq_faculty_department_name_active</code> — <code>departments(faculty_id, name)</code> WHERE <code>deleted_at IS NULL</code></li>
-    <li><code>uq_department_course_name_active</code> — <code>courses(department_id, name)</code> WHERE <code>deleted_at IS NULL</code></li>
+    <li><code>uq_university_course_code_name_active</code> — <code>courses(university_id, code, name)</code> WHERE <code>deleted_at IS NULL</code></li>
   </ul>
   <h3>Tam unique / check kısıtları</h3>
   <ul>
     <li><code>uq_course_professor_term</code> — <code>course_professors(course_id, professor_id, term)</code>: aynı ders/hoca/dönem eşleşmesi tek satırdır.</li>
     <li><code>uq_user_course_professor_review</code> — <code>reviews(user_id, course_professor_id)</code>: bir kullanıcı aynı ders-hoca eşleşmesine tek yorum yazar.</li>
     <li><code>uq_reporter_review_report</code> — <code>reports(reporter_id, review_id)</code>: aynı yorum bir kullanıcı tarafından tek kez şikâyet edilir.</li>
-    <li><code>ck_course_semester_range</code> — CHECK <code>semester_min &le; semester_max</code></li>
+    <li><code>course_departments</code> — composite PK <code>(course_id, department_id)</code>: bir ders bir bölümün müfredatında en fazla bir kez listelenir.</li>
   </ul>
   <h3>Davranış notları</h3>
   <ul>
     <li><strong>Soft delete:</strong> <code>deleted_at IS NULL</code> aktif kaydı gösterir; silinen kayıt tabloda kalır, sorgulardan filtrelenir.</li>
     <li><strong>Anonimlik:</strong> <code>users</code> tablosunda düz e-posta <strong>yoktur</strong>, yalnızca HMAC <code>email_hash</code> saklanır.</li>
-    <li><strong>Müfredat alanları:</strong> <code>courses.semester_min/max</code> ve <code>is_elective</code> EBS ders planından gelir, yalnızca PAÜ derslerinde doludur; diğer üniversitelerde ve elle açılan derslerde <code>NULL</code>. Yarıyıl bir <strong>aralık</strong>tır — ders arada bir yarıyılda açılmıyor olabilir.</li>
+    <li><strong>Kanonik ders:</strong> <code>courses</code> bölüme değil <strong>üniversiteye</strong> bağlıdır; ortak dersler (seçmeli havuzu, servis dersleri) tek satırdır ve tek değerlendirme havuzu taşır. Bölüm bağı <code>course_departments</code> join tablosundadır.</li>
+    <li><strong>Müfredat alanları:</strong> <code>course_departments.semesters</code> ve <code>is_elective</code> EBS ders planından gelir ve <strong>(ders, bölüm)</strong> ikilisine aittir — aynı ders bir bölümde zorunlu, başkasında seçmeli olabilir. Yalnızca PAÜ derslerinde dolu, diğerlerinde <code>NULL</code>. <code>semesters</code> bir <strong>küme</strong>dir (aralık değil): ders arada bir yarıyılda açılmıyor olabilir.</li>
+    <li><strong><code>course_departments</code>'ta soft-delete yok:</strong> public içerik (review) bu satıra bağlı değil (zincir <code>course_professors → courses</code>) ve satır seed'den yeniden üretilir. Soft-delete yalnızca review zincirine bağlı <strong>ve</strong> admin silme yüzeyi olan tablolarda var.</li>
     <li><strong><code>email_verifications.email_plain</code>:</strong> OTP gönderimi için düz e-postayı <strong>geçici</strong> tutar; doğrulama başarılı olunca veya süresi geçmiş kayıtlar temizlenince satırla birlikte silinir. Kalıcı saklanan bir alan değildir.</li>
   </ul>
 </section>
@@ -111,7 +113,9 @@ mermaid.initialize({
 const { svg } = await mermaid.render('erd-svg', `erDiagram
   UNIVERSITY ||--o{ FACULTY : has
   FACULTY ||--o{ DEPARTMENT : has
-  DEPARTMENT ||--o{ COURSE : offers
+  UNIVERSITY ||--o{ COURSE : offers
+  COURSE ||--o{ COURSE_DEPARTMENT : "listed in"
+  DEPARTMENT ||--o{ COURSE_DEPARTMENT : curriculum
   DEPARTMENT ||--o{ USER : enrolls
   DEPARTMENT ||--o{ EMAIL_VERIFICATION : "pending signup"
   COURSE ||--o{ COURSE_PROFESSOR : "has section"
@@ -142,13 +146,16 @@ const { svg } = await mermaid.render('erd-svg', `erDiagram
   }
   COURSE {
     int id PK
-    int department_id FK
+    int university_id FK
     string name UK
-    string code
-    smallint semester_min
-    smallint semester_max
-    bool is_elective
+    string code UK
     datetime deleted_at
+  }
+  COURSE_DEPARTMENT {
+    int course_id PK
+    int department_id PK
+    smallint_array semesters
+    bool is_elective
   }
   PROFESSOR {
     int id PK

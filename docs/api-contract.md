@@ -182,29 +182,35 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
   aramalarda sonuç kırpılır.
 - Farklı yazılmış ama anlamca aynı bölüm isimleri **ayrı grup** kalır (normalize edilmiyor).
 - **Mevcut veri:** 219 üniversite / 2127 fakülte / 12273 bölüm. Ders + hoca verisi **yalnızca
-  PAÜ** için var (139 lisans programı; 16.253 ders, 1.650 hoca, 37.165 ders-hoca eşleşmesi) —
-  diğer üniversitelerin bölümlerinde ders listesi **boş** gelir.
-- ⚠️ **PAÜ derslerinin 5.322'sinde (%33) hiç hoca yok** — EBS'de o dersin şubesi hiç açılmamış.
-  Dolu bir bölümde bile boş ders detayı görülebilir; bazı bölümlerde oran %90'ın üstünde.
-  `GET /courses` her ders için **`professor_count`** döner (tekil hoca sayısı; aynı hocanın farklı
-  dönemleri tek sayılır). `0` olan ders açıldığında **hiçbir şey yoktur** — ne hoca ne yorum,
-  yorum da yazılamaz. Boş durum (empty state) tasarımı şart; sıralama/soluklaştırma bu alanla
-  yapılır. Uç bunları **gizlemez**, kararı frontend verir. Hocasızların %96'sı seçmeli
-  (5.128 seçmeli / 194 zorunlu) — aşağıdaki `is_elective` ile ayırt edilir.
-- **Müfredat verisi:** `GET /courses` her ders için `semester_min` / `semester_max` (yarıyıl,
-  1-8) ve `is_elective` döner; `?is_elective=true|false` ile süzülür. Kırılım 12.078 seçmeli /
-  4.175 zorunlu. Yalnızca PAÜ derslerinde dolu; diğer üniversitelerde ve admin'in elle açtığı
-  derste **`null`** — "zorunlu" ile "bilinmiyor" aynı kova değil, bu yüzden `null` olanlar
-  **hiçbir filtre dalında dönmez**.
-- ⚠️ Yarıyıl bir **aralık**, liste değil: ders arada bir yarıyılda açılmıyor olabilir (aynı ders
-  birden çok yarıyılın seçmeli grubunda listelenebiliyor). Etiket ve sıralama içindir, **sınıf
-  filtresi olarak kullanılmamalı** — alttan/üstten ders yüzünden öğrencinin ders listesi rutin
-  olarak kendi sınıfının dışına taşar, `GET /users/me`'deki `current_grade` de kayıt yılından
-  hesaplanan bir tahmindir.
-- ⚠️ Aynı ders birden çok bölümün müfredatında olabilir ve **her bölümde ayrı `Course` kaydıdır**
-  (ortak seçmeli havuzu). Şubeyi yalnızca dersi açan bölüm taşıdığı için aramada aynı ders adı
-  biri `professor_count > 0`, diğeri `0` olan iki satır olarak çıkabilir; ikisinin yorumları
-  **ayrıdır**. Aramada `professor_count`'u yüksek olanı öne almak mantıklı.
+  PAÜ** için var (139 lisans programı; 7.414 ders, 16.627 ders-bölüm bağı, 1.650 hoca,
+  25.135 ders-hoca eşleşmesi) — diğer üniversitelerin bölümlerinde ders listesi **boş** gelir.
+- ⚠️ **PAÜ derslerinin 1.625'inde (%22) hiç hoca yok** — EBS'de o dersin şubesi hiç açılmamış.
+  Dolu bir bölümde bile boş ders detayı görülebilir. `GET /courses` her ders için
+  **`professor_count`** döner (tekil hoca sayısı; aynı hocanın farklı dönemleri tek sayılır).
+  `0` olan ders açıldığında **hiçbir şey yoktur** — ne hoca ne yorum, yorum da yazılamaz.
+  Boş durum (empty state) tasarımı şart; sıralama/soluklaştırma bu alanla yapılır. Uç bunları
+  **gizlemez**, kararı frontend verir. Hocasızların %91'i seçmeli (1.486 / 139) — aşağıdaki
+  `is_elective` ile ayırt edilir.
+- **Ders kanoniktir:** aynı ders birden çok bölümün müfredatında olsa da **tek kayıttır**
+  (üniversite düzeyinde, `(kod, ad)` kimliğiyle) ve **tek yorum havuzu** taşır. Kaç bölümün
+  müfredatında olduğu `department_count` alanında döner.
+- **`?department_id=` dalı** dersin o bölümdeki kaydını döner: `department_*`, `faculty_*`,
+  `semesters`, `is_elective` dolu. **`search` dalında** (bölüm verilmeden) bu alanların hepsi
+  **`null`**'dır — ders N bölüme ait olabildiği için tek bir değeri yok. `university_*` her
+  iki dalda da dolu.
+- **Müfredat verisi:** `semesters` (yarıyıl **kümesi**, ör. `[2,3,5]`) ve `is_elective`,
+  **(ders, bölüm)** ikilisine aittir — aynı ders bir bölümde zorunlu, başkasında seçmeli
+  olabilir. Yalnızca PAÜ derslerinde dolu; diğer üniversitelerde ve admin'in elle açtığı derste
+  **`null`** — "zorunlu" ile "bilinmiyor" aynı kova değil, bu yüzden `null` olanlar **hiçbir
+  filtre dalında dönmez**. `?is_elective=` `search` dalında **"en az bir bölümde"** anlamındadır.
+- ⚠️ `semesters` bir küme, aralık değil: ders arada bir yarıyılda açılmıyor olabilir. Etiket ve
+  sıralama içindir, **sınıf filtresi olarak kullanılmamalı** — alttan/üstten ders yüzünden
+  öğrencinin ders listesi rutin olarak kendi sınıfının dışına taşar, `GET /users/me`'deki
+  `current_grade` de kayıt yılından hesaplanan bir tahmindir.
+- ⚠️ `POST /courses` `department_id` alır ama aynı üniversitede aynı `(kod, ad)` ders varsa
+  **yeni ders açmaz**, o dersi bölümün müfredatına ekler (ders zaten o bölümdeyse 400).
+  `PATCH /courses/{id}` yalnızca `name`/`code` alır ve değişiklik dersin listelendiği **tüm**
+  bölümleri etkiler; `DELETE` de dersi tüm bölümlerden düşürür.
 - Üniversitelerin `city` alanı gerçek veri (YÖK Atlas). KKTC/yurtdışı üniversitelerde biçim
   `"Lefkoşa (KKTC)"` / `"Bakü (Azerbaycan)"` — düz il adı varsayılmamalı.
 - Ortalamalar **her zaman** yalnızca `approved` review'lardan hesaplanır (admin görüntülemesinde

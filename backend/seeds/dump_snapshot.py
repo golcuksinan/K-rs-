@@ -23,6 +23,7 @@ dökülmek zorundadır.
 """
 
 import argparse
+import json
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -34,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
-from sqlalchemy import Boolean, DateTime, Integer, text  # noqa: E402
+from sqlalchemy import ARRAY, Boolean, DateTime, Integer, text  # noqa: E402
 
 from app.db.session import SessionLocal  # noqa: E402
 import app.db.base  # noqa: E402, F401
@@ -43,6 +44,8 @@ from snapshot_schema import ACTIVE_PARENTS, TABLES, DEFAULT_SNAPSHOT  # noqa: E4
 
 
 def sqlite_type(column) -> str:
+    if isinstance(column.type, ARRAY):
+        return "TEXT"  # sqlite'ta dizi yok: JSON metni olarak saklanır, load'da geri çevrilir
     if isinstance(column.type, Boolean):
         return "INTEGER"
     if isinstance(column.type, Integer):
@@ -55,6 +58,8 @@ def to_sqlite(value):
         return int(value)
     if isinstance(value, datetime):
         return value.isoformat()
+    if isinstance(value, list):
+        return json.dumps(value)
     return value
 
 

@@ -20,6 +20,7 @@ transaction: herhangi bir tablo patlarsa hiçbiri yazılmaz.
 """
 
 import argparse
+import json
 import sqlite3
 import sys
 from datetime import datetime
@@ -31,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
-from sqlalchemy import Boolean, DateTime, create_engine, insert, text  # noqa: E402
+from sqlalchemy import ARRAY, Boolean, DateTime, create_engine, insert, text  # noqa: E402
 
 import app.db.base  # noqa: E402, F401
 
@@ -43,6 +44,8 @@ BATCH = 5000
 def from_sqlite(column, value):
     if value is None:
         return None
+    if isinstance(column.type, ARRAY):
+        return json.loads(value)
     if isinstance(column.type, Boolean):
         return bool(value)
     if isinstance(column.type, DateTime):
@@ -155,6 +158,8 @@ def main():
 
             for model in TABLES:
                 table = model.__tablename__
+                if "id" not in model.__table__.columns:
+                    continue  # composite PK'lı join tablosunda sequence yok
                 connection.execute(
                     text(
                         f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "

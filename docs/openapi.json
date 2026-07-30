@@ -2074,6 +2074,7 @@
           "courses"
         ],
         "summary": "Update Course",
+        "description": "⚠️ Ders kanonik: ad/kod değişikliği dersin listelendiği TÜM bölümleri etkiler.\nBölüm bağı ve müfredat alanları dersin değil join satırının alanı, buradan düzenlenmez.",
         "operationId": "update_course_courses__course_id__patch",
         "security": [
           {
@@ -2129,6 +2130,7 @@
           "courses"
         ],
         "summary": "Delete Course",
+        "description": "⚠️ Etki alanı üniversite geneli: ders kaç bölümün müfredatındaysa hepsinden düşer.",
         "operationId": "delete_course_courses__course_id__delete",
         "security": [
           {
@@ -2513,18 +2515,11 @@
             "type": "integer",
             "title": "Professor Count"
           },
-          "semester_min": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Semester Min"
+          "department_count": {
+            "type": "integer",
+            "title": "Department Count"
           },
-          "semester_max": {
+          "department_id": {
             "anyOf": [
               {
                 "type": "integer"
@@ -2533,7 +2528,54 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Max"
+            "title": "Department Id"
+          },
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          },
+          "faculty_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faculty Id"
+          },
+          "faculty_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faculty Name"
+          },
+          "semesters": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semesters"
           },
           "is_elective": {
             "anyOf": [
@@ -2545,22 +2587,6 @@
               }
             ],
             "title": "Is Elective"
-          },
-          "department_id": {
-            "type": "integer",
-            "title": "Department Id"
-          },
-          "department_name": {
-            "type": "string",
-            "title": "Department Name"
-          },
-          "faculty_id": {
-            "type": "integer",
-            "title": "Faculty Id"
-          },
-          "faculty_name": {
-            "type": "string",
-            "title": "Faculty Name"
           },
           "university_id": {
             "type": "integer",
@@ -2600,10 +2626,7 @@
           "name",
           "code",
           "professor_count",
-          "department_id",
-          "department_name",
-          "faculty_id",
-          "faculty_name",
+          "department_count",
           "university_id",
           "university_name"
         ],
@@ -2634,17 +2657,6 @@
               }
             ],
             "title": "Code"
-          },
-          "department_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Department Id"
           }
         },
         "type": "object",

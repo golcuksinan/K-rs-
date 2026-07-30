@@ -1,6 +1,5 @@
 """Router: app/api/professors.py (prefix /professors)"""
 from app.models.review import Review
-from app.models.course import Course
 from app.models.course_professor import CourseProfessor
 
 
@@ -33,14 +32,10 @@ class TestGetProfessorDetail:
         assert body["reviews"] == []
 
     def test_summarizes_multiple_course_professors(
-        self, client, db_session, valid_professor, valid_department, student
+        self, client, db_session, valid_professor, valid_department, student, make_course
     ):
-        course_a = Course(department_id=valid_department.id, name="Ders A", code="A101")
-        course_b = Course(department_id=valid_department.id, name="Ders B", code="B101")
-        db_session.add_all([course_a, course_b])
-        db_session.commit()
-        db_session.refresh(course_a)
-        db_session.refresh(course_b)
+        course_a = make_course(valid_department, name="Ders A", code="A101")
+        course_b = make_course(valid_department, name="Ders B", code="B101")
 
         cp_a = CourseProfessor(course_id=course_a.id, professor_id=valid_professor.id, term="2025-Güz")
         cp_b = CourseProfessor(course_id=course_b.id, professor_id=valid_professor.id, term="2025-Güz")
@@ -106,14 +101,11 @@ class TestListProfessors:
         assert resp.json()["items"] == []
 
     def test_course_count_and_averages_only_from_approved(
-        self, client, db_session, valid_professor, valid_department, student, second_student
+        self, client, db_session, valid_professor, valid_department, student, second_student,
+        make_course,
     ):
-        course_a = Course(department_id=valid_department.id, name="Liste Ders A", code="LA101")
-        course_b = Course(department_id=valid_department.id, name="Liste Ders B", code="LB101")
-        db_session.add_all([course_a, course_b])
-        db_session.commit()
-        db_session.refresh(course_a)
-        db_session.refresh(course_b)
+        course_a = make_course(valid_department, name="Liste Ders A", code="LA101")
+        course_b = make_course(valid_department, name="Liste Ders B", code="LB101")
 
         cp_a = CourseProfessor(course_id=course_a.id, professor_id=valid_professor.id, term="2025-Güz")
         cp_b = CourseProfessor(course_id=course_b.id, professor_id=valid_professor.id, term="2025-Güz")

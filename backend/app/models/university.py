@@ -20,3 +20,4 @@ class University(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     faculties = relationship("Faculty", back_populates="university")
+    courses = relationship("Course", back_populates="university")

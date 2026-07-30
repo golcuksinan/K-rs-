@@ -52,7 +52,7 @@ from app.models.enums import UserRole  # noqa: E402
 from app.models.university import University  # noqa: E402
 from app.models.faculty import Faculty  # noqa: E402
 from app.models.department import Department  # noqa: E402
-from app.models.course import Course  # noqa: E402
+from app.models.course import Course, CourseDepartment  # noqa: E402
 from app.models.professor import Professor  # noqa: E402
 from app.models.course_professor import CourseProfessor  # noqa: E402
 from app.models.user import User  # noqa: E402
@@ -182,12 +182,34 @@ def valid_department(db_session, valid_faculty) -> Department:
 
 
 @pytest.fixture()
-def valid_course(db_session, valid_department) -> Course:
-    course = Course(department_id=valid_department.id, name=_unique("Test Dersi"), code=_unique("TST"))
-    db_session.add(course)
-    db_session.commit()
-    db_session.refresh(course)
-    return course
+def make_course(db_session):
+    """Kanonik ders + bölüm bağı birlikte açar (ders artık üniversiteye bağlı, §ders kimliği)."""
+    def _make(department, name=None, code=None, semesters=None, is_elective=None) -> Course:
+        course = Course(
+            university_id=department.faculty.university_id,
+            name=name or _unique("Test Dersi"),
+            code=code or _unique("TST"),
+        )
+        db_session.add(course)
+        db_session.flush()
+        db_session.add(
+            CourseDepartment(
+                course_id=course.id,
+                department_id=department.id,
+                semesters=semesters,
+                is_elective=is_elective,
+            )
+        )
+        db_session.commit()
+        db_session.refresh(course)
+        return course
+
+    return _make
+
+
+@pytest.fixture()
+def valid_course(valid_department, make_course) -> Course:
+    return make_course(valid_department)
 
 
 @pytest.fixture()

@@ -8,15 +8,18 @@ class CourseResponse(BaseModel):
     name: str
     code: str
     professor_count: int
-    # Müfredat verisi; PAÜ dışı ve elle açılan derslerde None. semester_min/max bir ARALIK,
-    # ders arada bir yarıyılda açılmıyor olabilir — etiket/sıralama içindir, filtre için değil.
-    semester_min: Optional[int] = None
-    semester_max: Optional[int] = None
+    # Ders kaç bölümün müfredatında listeleniyor (ortak seçmeli havuzunda yüksek).
+    department_count: int
+    # Ders artık üniversite düzeyinde kanonik: bölüm/fakülte alanları yalnızca ?department_id=
+    # dalında dolu. search dalında ders N bölüme ait olabildiği için hepsi None.
+    department_id: Optional[int] = None
+    department_name: Optional[str] = None
+    faculty_id: Optional[int] = None
+    faculty_name: Optional[str] = None
+    # Müfredat verisi (ders, bölüm) ikilisine ait — bölüm bilinmeden anlamı yok, search
+    # dalında None. semesters bir KÜME: ders arada bir yarıyılda açılmıyor olabilir.
+    semesters: Optional[list[int]] = None
     is_elective: Optional[bool] = None
-    department_id: int
-    department_name: str
-    faculty_id: int
-    faculty_name: str
     university_id: int
     university_name: str
     university_short_name: Optional[str] = None
@@ -35,4 +38,3 @@ class CourseCreate(BaseModel):
 class CourseUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1)
     code: Optional[str] = Field(default=None, min_length=1)
-    department_id: Optional[int] = None
