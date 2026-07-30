@@ -39,7 +39,7 @@ docker compose run --rm -e RUN_MIGRATIONS=0 api alembic upgrade head
   çağrıldığı için aynı anda 15 sorgu (`pool_size=5 + max_overflow=10`), kabaca 60-120 istek/sn,
   ~300 eşzamanlı aktif kullanıcı. PAÜ ölçeğinde yeterli. Sıkışırsa ilk müdahale havuzu büyütmek
   (`pool_size=20, pool_pre_ping=True`), worker eklemek değil.
-- ⚠️ **Rate limit kampüs NAT'ında patlar.** Limitler IP başına (global `100/minute`); kampüs
+- ⚠️ **Rate limit kampüs NAT'ında patlar.** Limitler IP başına (global `20/second;100/minute`); kampüs
   wifi'sinden gelen herkes tek çıkış IP'si paylaşırsa ortak kotaya girer ve içeriden 429 yer.
   Bilinen açık, canlıya çıkmadan çözülmeli (bkz. CLAUDE.md §11).
 - **`DATABASE_URL` compose'da üretiliyor**, `.env`'e elle yazılmaz: host `localhost` değil `db`.
