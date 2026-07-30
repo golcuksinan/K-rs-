@@ -189,7 +189,18 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
   `GET /courses` her ders için **`professor_count`** döner (tekil hoca sayısı; aynı hocanın farklı
   dönemleri tek sayılır). `0` olan ders açıldığında **hiçbir şey yoktur** — ne hoca ne yorum,
   yorum da yazılamaz. Boş durum (empty state) tasarımı şart; sıralama/soluklaştırma bu alanla
-  yapılır. Uç bunları **gizlemez**, kararı frontend verir.
+  yapılır. Uç bunları **gizlemez**, kararı frontend verir. Hocasızların %96'sı seçmeli
+  (5.128 seçmeli / 194 zorunlu) — aşağıdaki `is_elective` ile ayırt edilir.
+- **Müfredat verisi:** `GET /courses` her ders için `semester_min` / `semester_max` (yarıyıl,
+  1-8) ve `is_elective` döner; `?is_elective=true|false` ile süzülür. Kırılım 12.078 seçmeli /
+  4.175 zorunlu. Yalnızca PAÜ derslerinde dolu; diğer üniversitelerde ve admin'in elle açtığı
+  derste **`null`** — "zorunlu" ile "bilinmiyor" aynı kova değil, bu yüzden `null` olanlar
+  **hiçbir filtre dalında dönmez**.
+- ⚠️ Yarıyıl bir **aralık**, liste değil: ders arada bir yarıyılda açılmıyor olabilir (aynı ders
+  birden çok yarıyılın seçmeli grubunda listelenebiliyor). Etiket ve sıralama içindir, **sınıf
+  filtresi olarak kullanılmamalı** — alttan/üstten ders yüzünden öğrencinin ders listesi rutin
+  olarak kendi sınıfının dışına taşar, `GET /users/me`'deki `current_grade` de kayıt yılından
+  hesaplanan bir tahmindir.
 - ⚠️ Aynı ders birden çok bölümün müfredatında olabilir ve **her bölümde ayrı `Course` kaydıdır**
   (ortak seçmeli havuzu). Şubeyi yalnızca dersi açan bölüm taşıdığı için aramada aynı ders adı
   biri `professor_count > 0`, diğeri `0` olan iki satır olarak çıkabilir; ikisinin yorumları

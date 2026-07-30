@@ -137,6 +137,83 @@ class TestProfessorCount:
         assert resp.json()["professor_count"] == 1
 
 
+class TestMufredatAlanlari:
+    """semester_min/max + is_elective: EBS ders planından gelen müfredat verisi (§9.3).
+    PAÜ dışı ve admin'in elle açtığı derslerde NULL — "zorunlu" ile "bilinmiyor" ayrı."""
+
+    @staticmethod
+    def _ders(db_session, department_id, name, code, **mufredat):
+        from app.models.course import Course
+
+        course = Course(department_id=department_id, name=name, code=code, **mufredat)
+        db_session.add(course)
+        db_session.commit()
+        db_session.refresh(course)
+        return course
+
+    def test_alanlar_yanitta_doner(self, client, db_session, valid_department):
+        course = self._ders(
+            db_session, valid_department.id, "Müfredatlı Ders", "MUF101",
+            semester_min=3, semester_max=6, is_elective=True,
+        )
+        resp = client.get("/courses", params={"department_id": valid_department.id})
+        found = next(c for c in resp.json()["items"] if c["id"] == course.id)
+        assert (found["semester_min"], found["semester_max"], found["is_elective"]) == (3, 6, True)
+
+    def test_mufredat_verisi_olmayan_derste_null_doner(self, client, valid_course, valid_department):
+        resp = client.get("/courses", params={"department_id": valid_department.id})
+        found = next(c for c in resp.json()["items"] if c["id"] == valid_course.id)
+        assert found["semester_min"] is None
+        assert found["semester_max"] is None
+        assert found["is_elective"] is None
+
+    def test_secmeli_filtresi(self, client, db_session, valid_department):
+        secmeli = self._ders(db_session, valid_department.id, "Seçmeli Ders", "SEC101", is_elective=True)
+        zorunlu = self._ders(db_session, valid_department.id, "Zorunlu Ders", "ZOR101", is_elective=False)
+        resp = client.get(
+            "/courses", params={"department_id": valid_department.id, "is_elective": "true"}
+        )
+        ids = [c["id"] for c in resp.json()["items"]]
+        assert secmeli.id in ids
+        assert zorunlu.id not in ids
+
+    def test_zorunlu_filtresi(self, client, db_session, valid_department):
+        secmeli = self._ders(db_session, valid_department.id, "Seçmeli Ders", "SEC101", is_elective=True)
+        zorunlu = self._ders(db_session, valid_department.id, "Zorunlu Ders", "ZOR101", is_elective=False)
+        resp = client.get(
+            "/courses", params={"department_id": valid_department.id, "is_elective": "false"}
+        )
+        ids = [c["id"] for c in resp.json()["items"]]
+        assert zorunlu.id in ids
+        assert secmeli.id not in ids
+
+    def test_filtre_verilmezse_ikisi_de_doner(self, client, db_session, valid_course, valid_department):
+        secmeli = self._ders(db_session, valid_department.id, "Seçmeli Ders", "SEC101", is_elective=True)
+        zorunlu = self._ders(db_session, valid_department.id, "Zorunlu Ders", "ZOR101", is_elective=False)
+        ids = [c["id"] for c in client.get(
+            "/courses", params={"department_id": valid_department.id}
+        ).json()["items"]]
+        assert {secmeli.id, zorunlu.id, valid_course.id} <= set(ids)
+
+    def test_mufredat_verisi_olmayan_ders_hicbir_filtre_dalinda_donmez(
+        self, client, valid_course, valid_department
+    ):
+        for deger in ("true", "false"):
+            resp = client.get(
+                "/courses", params={"department_id": valid_department.id, "is_elective": deger}
+            )
+            assert valid_course.id not in [c["id"] for c in resp.json()["items"]]
+
+    def test_global_aramada_da_uygulanir(self, client, db_session, valid_department):
+        """department_id'siz (search) dalında da filtrelenmeli."""
+        secmeli = self._ders(db_session, valid_department.id, "Zeplin Seçmeli", "ZPL101", is_elective=True)
+        zorunlu = self._ders(db_session, valid_department.id, "Zeplin Zorunlu", "ZPL102", is_elective=False)
+        resp = client.get("/courses", params={"search": "Zeplin", "is_elective": "true"})
+        ids = [c["id"] for c in resp.json()["items"]]
+        assert secmeli.id in ids
+        assert zorunlu.id not in ids
+
+
 class TestCreateCourse:
     def test_create_requires_admin(self, client, valid_department):
         resp = client.post(

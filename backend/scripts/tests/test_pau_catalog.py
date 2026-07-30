@@ -1,4 +1,4 @@
-"""EBS katalog parser'ının (scraper.parse_catalog_page) birim testleri — ağa ve DB'ye dokunmaz."""
+"""EBS parser'larının (katalog + ders planı) birim testleri — ağa ve DB'ye dokunmaz."""
 import os
 import sys
 
@@ -14,8 +14,10 @@ try:
     from scraper import (  # noqa: E402
         CatalogProgram,
         IKINCI_OGRETIM_RE,
+        _baslik_semesters,
         force_turkish,
         parse_catalog_page,
+        parse_program_page,
     )
 except ModuleNotFoundError:
     pytest.skip(
@@ -156,3 +158,124 @@ class TestIkinciOgretim:
 
     def test_ek_sadece_sonda_eslesir(self):
         assert IKINCI_OGRETIM_RE.search("(İ.Ö.) Bilgisayar") is None
+
+
+def _plan_row(code: str, name: str, tur: str, dk: str = "1", lng: str = "1") -> str:
+    link = f'<a href="Ders.aspx?lng={lng}&amp;dk={dk}&amp;ds=0">{name}</a>' if dk else name
+    return f"<tr><td>{code}</td><td>{link}</td><td>3+0</td><td>5</td><td>{tur}</td></tr>"
+
+
+_PLAN_HEADER = (
+    "<tr><th>Ders Kodu</th><th>Ders Adı</th><th>T+U</th><th>AKTS</th><th>Ders Türü</th></tr>"
+)
+
+
+def _plan_table(rows: str) -> str:
+    return f"<table>{_PLAN_HEADER}{rows}</table>"
+
+
+class TestBaslikSemesters:
+    """Yarıyıl tablonun içinde değil, tablodan ÖNCEKİ başlık metninde yazıyor."""
+
+    @pytest.mark.parametrize(
+        "text, expected",
+        [
+            ("3. Yarıyıl Ders Planı", {3}),
+            ("5. Yarıyıl Seçmeli Grupları : Alan Eğitimi Seçmeli 3", {5}),
+            ("2 . Yıl Ders Planı", {3, 4}),
+            ("1 . Yıl Ders Planı", {1, 2}),
+        ],
+    )
+    def test_yariyil_ve_yil_bicimleri(self, text, expected):
+        assert _baslik_semesters(text) == expected
+
+    def test_yil_ve_yariyil_bir_aradaysa_yariyil_kazanir(self):
+        """Yıl bazlı programda başlık ikisini birden taşıyabiliyor; yarıyıl daha kesin."""
+        assert _baslik_semesters("1. Yıl Seçmeli Grupları : 2. Yarıyıl (Bahar) Seçmeli") == {2}
+
+    def test_plan_basligi_olmayan_metin_none_doner(self):
+        """None = durum korunur; boş küme = başlık ama sayı okunamadı, önceki DEVRALINMAZ."""
+        assert _baslik_semesters("Ders Şubeleri") is None
+
+    def test_sayisiz_baslik_bos_kume_doner(self):
+        assert _baslik_semesters("Ders Planı") == set()
+
+
+class TestParseProgramPage:
+    def test_yariyil_onceki_basliktan_okunur(self):
+        html = "<h3>1. Yarıyıl Ders Planı</h3>" + _plan_table(
+            _plan_row("MAT 101", "MATEMATİK I", "Zorunlu")
+        )
+        (course,) = parse_program_page(html, base_url="https://x/Program.aspx")
+        assert course.semesters == {1}
+        assert course.is_elective is False
+
+    def test_ders_turu_baslik_sutunundan_okunur(self):
+        html = "<h3>3. Yarıyıl Seçmeli Grupları : Alan Seçmeli</h3>" + _plan_table(
+            _plan_row("ING 205", "İNGİLİZCE", "Seçmeli")
+        )
+        (course,) = parse_program_page(html, base_url="https://x/Program.aspx")
+        assert course.is_elective is True
+
+    def test_bilinmeyen_tur_none_kalir(self):
+        html = "<h3>1. Yarıyıl Ders Planı</h3>" + _plan_table(_plan_row("MAT 101", "MAT", ""))
+        (course,) = parse_program_page(html, base_url="https://x/Program.aspx")
+        assert course.is_elective is None
+
+    def test_ayni_ders_birden_cok_yariyilda_tek_satir_olur(self):
+        """Seçmeli havuzu birden çok yarıyılda listeleniyor → kod bazlı dedupe, yarıyıl union."""
+        html = (
+            "<h3>3. Yarıyıl Seçmeli Grupları : Alan Seçmeli</h3>"
+            + _plan_table(_plan_row("ING 205", "İNGİLİZCE", "Seçmeli"))
+            + "<h3>5. Yarıyıl Seçmeli Grupları : Alan Seçmeli 2</h3>"
+            + _plan_table(_plan_row("ING 205", "İNGİLİZCE", "Seçmeli"))
+        )
+        (course,) = parse_program_page(html, base_url="https://x/Program.aspx")
+        assert course.semesters == {3, 5}
+
+    def test_cakismada_zorunlu_kazanir(self):
+        """IENG 104 gerçek vakası: 2. yarıyılda zorunlu, sonraki yarıyıllarda seçmeli listeli."""
+        html = (
+            "<h3>2. Yarıyıl Ders Planı</h3>"
+            + _plan_table(_plan_row("IENG 104", "GENEL EKONOMİ", "Zorunlu"))
+            + "<h3>5. Yarıyıl Ders Planı</h3>"
+            + _plan_table(_plan_row("IENG 104", "GENEL EKONOMİ", "Seçmeli"))
+        )
+        (course,) = parse_program_page(html, base_url="https://x/Program.aspx")
+        assert course.is_elective is False
+        assert course.semesters == {2, 5}
+
+    def test_sarmalayici_tablo_sayilmaz(self):
+        """En dıştaki tablo bütün yarıyılları tek tabloymuş gibi kapsıyor; sayılırsa
+        yalnızca orada geçen satırlar yanlış yarıyılla girer."""
+        leaf = _plan_table(_plan_row("MAT 101", "MATEMATİK I", "Zorunlu"))
+        html = (
+            "<h3>1. Yarıyıl Ders Planı</h3>"
+            f"<table>{_PLAN_HEADER}"
+            f'{_plan_row("SRM 999", "YALNIZCA SARMALAYICIDA", "Zorunlu", dk="42")}'
+            f"<tr><td>{leaf}</td></tr></table>"
+        )
+        codes = {c.code for c in parse_program_page(html, base_url="https://x/Program.aspx")}
+        assert codes == {"MAT 101"}
+
+    def test_somut_kodu_olmayan_slot_atlanir(self):
+        html = "<h3>1. Yarıyıl Ders Planı</h3>" + _plan_table(
+            _plan_row("-", "İsteğe Bağlı Seçmeli-1", "Seçmeli")
+        )
+        assert parse_program_page(html, base_url="https://x/Program.aspx") == []
+
+    def test_linksiz_satir_atlanir(self):
+        html = "<h3>1. Yarıyıl Ders Planı</h3>" + _plan_table(
+            _plan_row("FIZ 101", "FİZİK I", "Zorunlu", dk="")
+        )
+        assert parse_program_page(html, base_url="https://x/Program.aspx") == []
+
+    def test_ders_detay_linki_turkceye_normalize_edilir(self):
+        html = "<h3>1. Yarıyıl Ders Planı</h3>" + _plan_table(
+            _plan_row("MAT 101", "MATEMATİK I", "Zorunlu", lng="2")
+        )
+        (course,) = parse_program_page(html, base_url="https://x/Program.aspx")
+        assert "lng=1" in course.detail_url and "lng=2" not in course.detail_url
+
+    def test_ders_plani_olmayan_sayfa_bos_doner(self):
+        assert parse_program_page("<h1>Program</h1><table><tr><th>Başka</th></tr></table>", "u") == []
