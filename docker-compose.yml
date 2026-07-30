@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kursu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD gerekli}
+      POSTGRES_DB: ${POSTGRES_DB:-kursu_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kursu} -d ${POSTGRES_DB:-kursu_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kursu}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-kursu_db}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY gerekli}
+      EMAIL_PEPPER_KEY: ${EMAIL_PEPPER_KEY:?EMAIL_PEPPER_KEY gerekli}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      HF_API_TOKEN: ${HF_API_TOKEN:-}
+      HF_MODEL_URL: ${HF_MODEL_URL:-https://router.huggingface.co/hf-inference/models/unitary/toxic-bert}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+volumes:
+  pgdata:
