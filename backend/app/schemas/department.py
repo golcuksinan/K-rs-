@@ -26,5 +26,6 @@ class DepartmentCreate(BaseModel):
 
 
 class DepartmentUpdate(BaseModel):
+    # faculty_id bilinçli olarak YOK: bölümün fakültesi değişirse üniversite de değişebilir,
+    # Course.university_id takip etmez ve kanonik ders kimliği kırılır (bkz. FacultyUpdate).
     name: Optional[str] = Field(default=None, min_length=1)
-    faculty_id: Optional[int] = None

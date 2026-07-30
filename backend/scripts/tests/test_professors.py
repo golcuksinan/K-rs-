@@ -123,6 +123,30 @@ class TestListProfessors:
         assert found["review_count"] == 1
         assert found["average_teaching_score"] == 4
 
+    def test_course_count_excludes_soft_deleted_courses(
+        self, client, db_session, valid_professor, valid_department, make_course
+    ):
+        from sqlalchemy import func
+
+        course_a = make_course(valid_department, name="Sayım Ders A", code="SA101")
+        course_b = make_course(valid_department, name="Sayım Ders B", code="SB101")
+        db_session.add_all([
+            CourseProfessor(course_id=course_a.id, professor_id=valid_professor.id, term="2025-Güz"),
+            CourseProfessor(course_id=course_b.id, professor_id=valid_professor.id, term="2025-Güz"),
+        ])
+        db_session.commit()
+
+        def _course_count():
+            items = client.get("/professors", params={"search": valid_professor.full_name}).json()["items"]
+            return next(p for p in items if p["id"] == valid_professor.id)["course_count"]
+
+        assert _course_count() == 2
+
+        course_b.deleted_at = func.now()
+        db_session.commit()
+
+        assert _course_count() == 1
+
     def test_limit_and_offset(self, client, valid_professor):
         first = client.get("/professors", params={"limit": 1, "offset": 0}).json()
         second = client.get("/professors", params={"limit": 1, "offset": 1}).json()

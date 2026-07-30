@@ -2750,17 +2750,6 @@
               }
             ],
             "title": "Name"
-          },
-          "faculty_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Faculty Id"
           }
         },
         "type": "object",
@@ -2833,17 +2822,6 @@
               }
             ],
             "title": "Name"
-          },
-          "university_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "University Id"
           }
         },
         "type": "object",

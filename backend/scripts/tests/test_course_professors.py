@@ -1,7 +1,7 @@
 """Router: app/api/course_professors.py (prefix /course-professors)"""
 from sqlalchemy import func
 
-from app.api.course_professors import _parse_term_key
+from app.api.course_professors import _latest_term, _parse_term_key
 from app.models.course_professor import CourseProfessor
 from app.models.professor import Professor
 from app.models.review import Review
@@ -97,15 +97,30 @@ class TestParseTermKey:
     def test_guz_is_first_season(self):
         assert _parse_term_key("2025-2026 Güz") == (2025, 0)
 
-    def test_bahar_is_second_season(self):
-        assert _parse_term_key("2025-2026 Bahar") == (2025, 1)
+    def test_bahar_comes_after_guz_and_yillik(self):
+        assert _parse_term_key("2025-2026 Bahar") == (2025, 2)
 
     def test_case_and_whitespace_tolerant(self):
         assert _parse_term_key("2025-2026 GÜZ") == (2025, 0)
         assert _parse_term_key("  2025-2026 Güz  ") == (2025, 0)
 
     def test_unknown_season_ranks_last_within_year(self):
-        assert _parse_term_key("2025-2026 Yaz") == (2025, -1)
+        assert _parse_term_key("2025-2026 Sonbahar") == (2025, -1)
+
+    def test_seasons_follow_academic_calendar(self):
+        terms = ["2024-2025 Yaz", "2024-2025 Bahar", "2024-2025 Güz", "2024-2025 Yıllık"]
+        assert sorted(terms, key=_parse_term_key) == [
+            "2024-2025 Güz",
+            "2024-2025 Yıllık",
+            "2024-2025 Bahar",
+            "2024-2025 Yaz",
+        ]
+
+    def test_latest_term_breaks_equal_keys_by_string(self):
+        # Ayrıştırılamayan iki dönem aynı (0, -1) anahtarına düşer; seçim DB satır sırasına
+        # kalmasın diye string ile kırılır.
+        assert _latest_term(["Bilinmeyen A", "Bilinmeyen B"]) == "Bilinmeyen B"
+        assert _latest_term(["Bilinmeyen B", "Bilinmeyen A"]) == "Bilinmeyen B"
 
     def test_unparsable_format_ranks_last(self):
         assert _parse_term_key("Bilinmeyen") == (0, -1)
@@ -150,6 +165,11 @@ class TestListCourseProfessors:
         _make_pairings(db_session, valid_course.id, valid_professor.id, ["2025-2026 Güz", "2025-2026 Bahar"])
         body = client.get("/course-professors", params={"course_id": valid_course.id}).json()
         assert [item["term"] for item in body["items"]] == ["2025-2026 Bahar"]
+
+    def test_yaz_beats_bahar_in_same_year(self, client, db_session, valid_course, valid_professor):
+        _make_pairings(db_session, valid_course.id, valid_professor.id, ["2025-2026 Bahar", "2025-2026 Yaz"])
+        body = client.get("/course-professors", params={"course_id": valid_course.id}).json()
+        assert [item["term"] for item in body["items"]] == ["2025-2026 Yaz"]
 
     def test_unparsable_term_sorted_last(self, client, db_session, valid_course, valid_professor):
         _make_pairings(db_session, valid_course.id, valid_professor.id, ["Bilinmeyen Dönem", "2020-2021 Güz"])

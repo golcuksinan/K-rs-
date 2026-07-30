@@ -41,6 +41,15 @@ class TestCreateReview:
         resp = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
         assert resp.status_code == 400
 
+    def test_soft_deleted_course_rejected(self, client, db_session, student_headers, course_professor, valid_course):
+        from sqlalchemy import func
+
+        valid_course.deleted_at = func.now()
+        db_session.commit()
+
+        resp = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        assert resp.status_code == 400
+
     def test_score_out_of_range_rejected(self, client, student_headers, course_professor):
         resp = client.post(
             "/reviews", json=_review_payload(course_professor.id, teaching_score=6), headers=student_headers
@@ -128,6 +137,59 @@ class TestCreateReview:
         from app.models.review import Review
         review = db_session.query(Review).filter(Review.id == review_id).first()
         assert review.status == "pending"
+
+
+class TestModerationBackgroundRace:
+    """Arka plan task'ı yalnızca review hâlâ pending VE moderasyona soktuğu metin değişmemişse
+    yazar. Yarış elle kurulur: TestClient'ta background task senkron çalışıyor."""
+
+    @staticmethod
+    def _pending_review_id(client, student_headers, course_professor_id):
+        created = client.post("/reviews", json=_review_payload(course_professor_id), headers=student_headers)
+        assert created.status_code == 201, created.text
+        return created.json()["id"]
+
+    def test_admin_decision_is_not_overwritten(
+        self, client, db_session, monkeypatch, admin_headers, student_headers, course_professor, fake_ai_service
+    ):
+        from app.api import reviews as reviews_module
+        from app.models.review import Review
+
+        review_id = self._pending_review_id(client, student_headers, course_professor.id)
+        approved = client.patch(
+            f"/reviews/{review_id}/status", json={"status": "approved"}, headers=admin_headers
+        )
+        assert approved.status_code == 200
+
+        monkeypatch.setattr(reviews_module, "moderate_review", lambda review: "rejected")
+        reviews_module._run_moderation_background(review_id)
+
+        db_session.expire_all()
+        assert db_session.query(Review).filter(Review.id == review_id).first().status == "approved"
+
+    def test_edit_during_moderation_is_not_overwritten(
+        self, client, db_session, monkeypatch, student_headers, course_professor, fake_ai_service
+    ):
+        from app.api import reviews as reviews_module
+        from app.models.review import Review
+
+        review_id = self._pending_review_id(client, student_headers, course_professor.id)
+
+        def _moderate_then_edit(review):
+            # HF beklenirken kullanıcı yorumu değiştirdi -> bu task'ın kararı bayat kaldı
+            side = reviews_module.SessionLocal()
+            side.query(Review).filter(Review.id == review_id).update(
+                {"comment": "araya giren düzenleme"}, synchronize_session=False
+            )
+            side.commit()
+            side.close()
+            return "approved"
+
+        monkeypatch.setattr(reviews_module, "moderate_review", _moderate_then_edit)
+        reviews_module._run_moderation_background(review_id)
+
+        db_session.expire_all()
+        assert db_session.query(Review).filter(Review.id == review_id).first().status == "pending"
 
 
 class TestListReviews:

@@ -6,13 +6,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db, SessionLocal
+from app.models.course import Course
 from app.models.user import User
 from app.models.review import Review
 from app.models.report import Report
 from app.models.course_professor import CourseProfessor
 from app.schemas.common import Page
 from app.schemas.review import ReviewCreate, ReviewResponse, ReviewStatusUpdate, ReviewFullResponse, ReviewUpdate
-from app.api.common import PageParams, pagination, paginated
+from app.api.common import PageParams, get_active_or_400, pagination, paginated
 from app.api.deps import get_current_user, get_current_admin_user
 from app.services.ai_service import moderate_review
 
@@ -25,7 +26,16 @@ def _run_moderation_background(review_id: int):
         review = db.query(Review).filter(Review.id == review_id).first()
         if review is None:
             return
-        review.status = moderate_review(review)
+        moderated_comment = review.comment
+        verdict = moderate_review(review)
+        # HF çağrısı sürerken araya admin kararı (status artık pending değil) veya kullanıcı
+        # düzenlemesi (comment değişti) girmiş olabilir; ikisi de bu task'ı geçersiz kılar —
+        # değişen metni zaten yeni bir task moderasyona sokmuştur.
+        db.query(Review).filter(
+            Review.id == review_id,
+            Review.status == "pending",
+            Review.comment == moderated_comment,
+        ).update({"status": verdict}, synchronize_session=False)
         db.commit()
     except Exception:
         db.rollback()
@@ -45,6 +55,7 @@ def create_review(
     ).first()
     if not course_professor:
         raise HTTPException(status_code=404, detail="Ders/hoca eşleşmesi bulunamadı")
+    get_active_or_400(db, Course, course_professor.course_id, "course_id")
 
     review = Review(
         user_id=current_user.id,

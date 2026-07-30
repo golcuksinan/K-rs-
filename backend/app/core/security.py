@@ -58,14 +58,18 @@ def verify_otp(plain_otp: str, otp_hash: str) -> bool:
     return hmac.compare_digest(hash_otp(plain_otp), otp_hash)
 
 def create_access_token(user_id: int) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": str(user_id), "exp": expire}
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # iat saniyeye yuvarlanmaz: sıfırlamayla aynı saniyede alınan YENİ token geçersiz sayılırdı.
+    payload = {"sub": str(user_id), "exp": expire, "iat": now.timestamp()}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def decode_access_token(token: str) -> int | None:
+def decode_access_token(token: str) -> tuple[int | None, float | None]:
+    """(user_id, iat) döner; iat şifre değişiminden önceki token'ları elemek için (deps.py).
+    Eski (iat'siz) token'larda iat None olur."""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
-        return int(user_id) if user_id is not None else None
+        return (int(user_id) if user_id is not None else None, payload.get("iat"))
     except JWTError:
-        return None
+        return (None, None)

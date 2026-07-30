@@ -55,6 +55,24 @@ class TestRegister:
         resp = client.post("/auth/register", json=payload)
         assert resp.status_code == 400
 
+    def test_register_department_of_soft_deleted_faculty_rejected(self, client, db_session, valid_department, valid_faculty):
+        from sqlalchemy import func
+
+        valid_faculty.deleted_at = func.now()
+        db_session.commit()
+
+        resp = client.post("/auth/register", json=register_payload(valid_department.id))
+        assert resp.status_code == 400
+
+    def test_register_department_of_soft_deleted_university_rejected(self, client, db_session, valid_department, valid_university):
+        from sqlalchemy import func
+
+        valid_university.deleted_at = func.now()
+        db_session.commit()
+
+        resp = client.post("/auth/register", json=register_payload(valid_department.id))
+        assert resp.status_code == 400
+
     def test_register_department_must_belong_to_email_domain_university(
         self, client, monkeypatch, valid_department, valid_university
     ):
@@ -248,6 +266,23 @@ class TestResetPassword:
 
         new_login = client.post("/auth/login", json={"email": student["email"], "password": "YeniSifre1"})
         assert new_login.status_code == 200
+
+    def test_reset_password_invalidates_previously_issued_tokens(self, client, student, otp_capture):
+        login = client.post("/auth/login", json={"email": student["email"], "password": student["password"]})
+        old_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+        assert client.get("/users/me", headers=old_headers).status_code == 200
+
+        client.post("/auth/forgot-password", json={"email": student["email"]})
+        resp = client.post("/auth/reset-password", json={
+            "email": student["email"], "otp": otp_capture["reset"], "new_password": "YeniSifre1",
+        })
+        assert resp.status_code == 200
+
+        assert client.get("/users/me", headers=old_headers).status_code == 401
+
+        new_login = client.post("/auth/login", json={"email": student["email"], "password": "YeniSifre1"})
+        new_headers = {"Authorization": f"Bearer {new_login.json()['access_token']}"}
+        assert client.get("/users/me", headers=new_headers).status_code == 200
 
     def test_reset_password_wrong_otp_rejected(self, client, student, otp_capture):
         client.post("/auth/forgot-password", json={"email": student["email"]})

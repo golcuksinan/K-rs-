@@ -1,10 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from app.db.base_class import Base
-
-
-def default_expiry():
-    return datetime.now(timezone.utc) + timedelta(minutes=10)
 
 
 class EmailVerification(Base):
@@ -17,6 +13,6 @@ class EmailVerification(Base):
     hashed_password = Column(String, nullable=False)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     enrollment_year = Column(Integer, nullable=True)
-    expires_at = Column(DateTime(timezone=True), default=default_expiry, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
     attempt_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)

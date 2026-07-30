@@ -18,11 +18,6 @@ from app.api.deps import get_current_admin_user
 
 router = APIRouter(prefix="/departments", tags=["departments"])
 
-# Gruplama dalı satırları Python'da toplamak zorunda (grup = bölüm adı, SQL'de sayfalanamıyor).
-# Bu yüzden ham satır sayısına sabit bir güvenlik tavanı konuyor: search="a" gibi geniş bir
-# terim on binlerce bölüm satırının büyük kısmını eşleştirebilir.
-GROUP_SEARCH_ROW_CAP = 500
-
 
 @router.get("", response_model=Union[Page[DepartmentResponse], Page[DepartmentGroupResponse]])
 def list_departments(
@@ -43,26 +38,36 @@ def list_departments(
     if not search:
         raise HTTPException(status_code=422, detail="faculty_id veya search parametrelerinden biri gönderilmeli")
 
-    departments = (
-        db.query(Department)
-        .options(joinedload(Department.faculty))
+    # limit/offset satır değil **grup** seviyesinde uygulanır — kullanıcının gördüğü birim grup.
+    # Dolayısıyla total = grup sayısı, eşleşen bölüm satırı sayısı DEĞİL.
+    grouped = (
+        db.query(Department.name)
         .filter(
             Department.name.ilike(like_pattern(search), escape="\\"),
             Department.deleted_at.is_(None),
         )
-        .order_by(Department.name)
-        .limit(GROUP_SEARCH_ROW_CAP)
-        .all()
+        .group_by(Department.name)
     )
+    total = grouped.count()
+    names = [
+        row[0]
+        for row in grouped.order_by(Department.name)
+        .offset(params.offset)
+        .limit(params.limit)
+        .all()
+    ]
 
-    groups: dict[str, list] = {}
+    departments = (
+        db.query(Department)
+        .options(joinedload(Department.faculty))
+        .filter(Department.name.in_(names), Department.deleted_at.is_(None))
+        .order_by(Department.name)
+        .all()
+    ) if names else []
+
+    groups: dict[str, list] = {name: [] for name in names}
     for dept in departments:
-        groups.setdefault(dept.name, []).append(dept.faculty)
-
-    # limit/offset satır değil **grup** seviyesinde uygulanır — kullanıcının gördüğü birim grup.
-    # Dolayısıyla total = grup sayısı, eşleşen bölüm satırı sayısı DEĞİL.
-    ordered = sorted(groups.items())
-    window = ordered[params.offset : params.offset + params.limit]
+        groups[dept.name].append(dept.faculty)
 
     items = [
         DepartmentGroupResponse(
@@ -77,9 +82,9 @@ def list_departments(
                 for fac in facs
             ],
         )
-        for name, facs in window
+        for name, facs in groups.items()
     ]
-    return page(items, len(ordered), params)
+    return page(items, total, params)
 
 
 @router.post("", response_model=DepartmentResponse, status_code=status.HTTP_201_CREATED)
@@ -110,11 +115,7 @@ def update_department(
 ):
     department = get_active_or_404(db, Department, department_id, "Bölüm bulunamadı")
 
-    data = payload.model_dump(exclude_unset=True)
-    if "faculty_id" in data:
-        get_active_or_400(db, Faculty, data["faculty_id"], "faculty_id")
-
-    for field, value in data.items():
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(department, field, value)
 
     try:

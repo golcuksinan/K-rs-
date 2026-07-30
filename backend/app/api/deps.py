@@ -12,6 +12,14 @@ from app.core.security import decode_access_token
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def _issued_before_password_change(user: User, issued_at: float | None) -> bool:
+    """Şifre sıfırlandıysa o andan önce üretilmiş token kabul edilmez. iat taşımayan
+    (sıfırlamadan eski) token'lar da elenir — tarafta kalınır."""
+    if user.password_changed_at is None:
+        return False
+    return issued_at is None or issued_at < user.password_changed_at.timestamp()
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
@@ -22,7 +30,7 @@ def get_current_user(
             detail="Giriş yapmanız gerekiyor",
         )
 
-    user_id = decode_access_token(credentials.credentials)
+    user_id, issued_at = decode_access_token(credentials.credentials)
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -34,6 +42,12 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Kullanıcı bulunamadı",
+        )
+
+    if _issued_before_password_change(user, issued_at):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Geçersiz veya süresi dolmuş token",
         )
 
     # Bugün doğrulanmamış kullanıcı yaratılmıyor (verify-otp is_verified=True yazar);
@@ -62,10 +76,12 @@ def get_optional_current_user(
 ) -> Optional[User]:
     if credentials is None:
         return None
-    user_id = decode_access_token(credentials.credentials)
+    user_id, issued_at = decode_access_token(credentials.credentials)
     if user_id is None:
         return None
     user = db.query(User).filter(User.id == user_id).first()
-    if user is not None and not user.is_verified:
+    if user is None:
+        return None
+    if not user.is_verified or _issued_before_password_change(user, issued_at):
         return None
     return user

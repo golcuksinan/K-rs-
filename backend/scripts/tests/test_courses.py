@@ -56,6 +56,10 @@ class TestListCourses:
         assert valid_course.id in ids
         assert other_course.id not in ids
 
+    def test_nonexistent_department_returns_404(self, client):
+        resp = client.get("/courses", params={"department_id": 999999})
+        assert resp.status_code == 404
+
     def test_courses_of_soft_deleted_department_shows_placeholder_name(
         self, client, admin_headers, valid_course, valid_department
     ):
@@ -127,6 +131,30 @@ class TestKanonikDers:
             if c["id"] == course.id
         )
         assert found["department_count"] == 2
+
+    def test_department_count_silinmis_bolumu_saymaz(
+        self, client, db_session, admin_headers, make_course, valid_department, valid_faculty
+    ):
+        from sqlalchemy import func
+
+        course = make_course(valid_department, name="Silinen Bölüm Dersi", code="DEL301")
+        other = self._ikinci_bolum(db_session, valid_faculty, name="Silinecek Bölüm")
+        client.post(
+            "/courses",
+            json={"department_id": other.id, "name": "Silinen Bölüm Dersi", "code": "DEL301"},
+            headers=admin_headers,
+        )
+
+        def _department_count():
+            items = client.get("/courses", params={"department_id": valid_department.id}).json()["items"]
+            return next(c for c in items if c["id"] == course.id)["department_count"]
+
+        assert _department_count() == 2
+
+        other.deleted_at = func.now()
+        db_session.commit()
+
+        assert _department_count() == 1
 
     def test_ayni_bolume_ikinci_kez_baglanamaz(
         self, client, admin_headers, valid_course, valid_department

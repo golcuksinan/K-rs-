@@ -61,11 +61,7 @@ def update_faculty(
 ):
     faculty = get_active_or_404(db, Faculty, faculty_id, "Fakülte bulunamadı")
 
-    data = payload.model_dump(exclude_unset=True)
-    if "university_id" in data:
-        get_active_or_400(db, University, data["university_id"], "university_id")
-
-    for field, value in data.items():
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(faculty, field, value)
 
     try:

@@ -7,6 +7,7 @@ from app.api.common import PageParams, like_pattern, page, paginate, pagination
 from app.api.deps import get_optional_current_user
 from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db
+from app.models.course import Course
 from app.models.course_professor import CourseProfessor
 from app.models.enums import UserRole
 from app.models.professor import Professor
@@ -35,7 +36,8 @@ def list_professors(
     ratings = rating_by_professor(db, ids)
     course_counts = dict(
         db.query(CourseProfessor.professor_id, func.count(func.distinct(CourseProfessor.course_id)))
-        .filter(CourseProfessor.professor_id.in_(ids))
+        .join(Course, Course.id == CourseProfessor.course_id)
+        .filter(CourseProfessor.professor_id.in_(ids), Course.deleted_at.is_(None))
         .group_by(CourseProfessor.professor_id)
         .all()
     ) if ids else {}

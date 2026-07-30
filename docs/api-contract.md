@@ -37,6 +37,9 @@ cd backend
 
 - Token: `Authorization: Bearer <token>`. Ömür **60 dk** (`ACCESS_TOKEN_EXPIRE_MINUTES`).
   **Refresh token yok** → 401 alınca yeniden login.
+- ⚠️ **`reset-password` o kullanıcının önceki tüm token'larını geçersiz kılar** — sıfırlamadan
+  önce alınmış token'la yapılan her istek **401** döner. Frontend başka bir sekmede/cihazda
+  açık oturumu bu 401'de login'e düşürmeli.
 - **Şifre değiştirme ucu yok** (bilinçli): akış forgot-password + reset-password (OTP) üzerinden.
 - Kısıtlar: e-posta **sadece `@posta.pau.edu.tr`** ve `department_id` o domain'in üniversitesine
   (Pamukkale) ait olmak zorunda — çapraz seçim **400** "Bu e-posta adresiyle yalnızca … bölümlerine
@@ -84,6 +87,7 @@ Zorunlu filtre kuralları:
 
 - `GET /faculties` → `university_id` **zorunlu** (yoksa 422).
 - `GET /courses` → `department_id` yoksa `search` zorunlu, **en az 2 karakter**, aksi halde 422.
+  Verilen `department_id` hiç yoksa **404** (soft-delete edilmiş bölüm 404 değil, aşağı bkz. §6).
 - `GET /departments` → `faculty_id` yoksa `search` zorunlu (**boş olmaması yeterli, uzunluk
   kontrolü yok**), aksi halde 422.
 - `GET /course-professors` → `course_id` **zorunlu**; `term` verilmezse **en güncel dönem**
@@ -94,6 +98,10 @@ Zorunlu filtre kuralları:
 Arama davranışı: `search` `GET /faculties`/`GET /departments`/`GET /professors`'ta **ad** üzerinde;
 `GET /courses` ad **ve ders kodunda**, `GET /universities` ad **ve kısaltmada** (`short_name`) arar.
 `%` ve `_` joker değil **literal karakter** olarak eşleşir.
+
+⚠️ **`PATCH /faculties/{id}` ve `PATCH /departments/{id}` yalnızca `name` alır.** Üst kayıt
+alanları (`university_id` / `faculty_id`) gövdede gönderilse de **yok sayılır** (200 döner, kayıt
+değişmez): taşıma dersin kanonik kimliğini (`university_id` + kod + ad) kırardı. Taşıma ucu yok.
 
 Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek istisna
 `DELETE /reviews/{id}` — o gerçekten siler (aşağı bkz.).
@@ -107,7 +115,9 @@ Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek 
 3. **Push/WebSocket yok** — frontend polling yapar: `GET /reviews/me`
    (`created_at` **azalan** → yeni review `items[0]`), dönen `id` ile eşleştirilir.
 4. Aynı `course_professor_id`'ye ikinci review → **400** "Bu derse zaten bir değerlendirme
-   yaptınız". Geçersiz `course_professor_id` → 404.
+   yaptınız". Geçersiz `course_professor_id` → 404. Eşleşme dursa da **dersi soft-delete
+   edilmişse → 400** "Geçersiz course_id" (silinmiş derse yeni yorum yazılamaz; eski onaylı
+   yorumlar görünmeye devam eder).
 5. `POST /reviews` skorları (`teaching`/`difficulty`/`fairness`) **1..5**, `comment` opsiyonel,
    en fazla 2000 karakter.
 
@@ -147,6 +157,10 @@ report → **400**. Admin `PATCH /reports/{id}/status` değerleri **`resolved` |
   `GET /course-professors/{id}`, `GET /professors/{id}`, `GET /users/me`.
 - **Bilinçli istisna:** düz liste dalları (`?faculty_id=` gibi filtreli çağrılar) maskelemeye
   dahil değildir.
+- ⚠️ **"Hiç yok" ile "silinmiş" farklı sonuç verir:** `GET /courses?department_id=` var olmayan
+  bölüm için **404**, soft-delete edilmiş bölüm için **200** + `"Silinmiş Bölüm"` döner.
+- Sayaçlar silinmiş kayıtları saymaz: `department_count` yalnızca **aktif** bölümleri,
+  `GET /professors`'taki `course_count` yalnızca **aktif** dersleri sayar.
 
 ## 7. Hata gövdesi şekilleri — **üç farklı şekil var**
 
@@ -178,8 +192,6 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
   bulmaz. Arama kutusu bu varsayımla tasarlanmalı.
 - `GET /departments` **iki farklı şekil** döner: `faculty_id` verilirse düz bölüm listesi,
   verilmezse isim bazlı **gruplanmış** liste (`{department_name, faculties[]}`).
-- Gruplama dalında ham sorguya **500 satırlık** tavan var (`GROUP_SEARCH_ROW_CAP`); çok geniş
-  aramalarda sonuç kırpılır.
 - Farklı yazılmış ama anlamca aynı bölüm isimleri **ayrı grup** kalır (normalize edilmiyor).
 - **Mevcut veri:** 219 üniversite / 2127 fakülte / 12273 bölüm. Ders + hoca verisi **yalnızca
   PAÜ** için var (139 lisans programı; 7.414 ders, 16.627 ders-bölüm bağı, 1.650 hoca,

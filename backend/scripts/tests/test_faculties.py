@@ -119,6 +119,24 @@ class TestUpdateFaculty:
         resp = client.patch("/faculties/999999", json={"name": "X"}, headers=admin_headers)
         assert resp.status_code == 404
 
+    def test_university_id_in_body_is_ignored(self, client, db_session, admin_headers, valid_faculty, valid_university):
+        """Fakülte başka üniversiteye taşınamaz: FacultyUpdate'te university_id yok, Pydantic
+        alanı yok sayar (taşıma Course.university_id zincirini kırardı)."""
+        from app.models.university import University
+
+        other = University(name=f"Taşıma Hedefi Üni {valid_faculty.id}", city="X")
+        db_session.add(other)
+        db_session.commit()
+        db_session.refresh(other)
+
+        resp = client.patch(
+            f"/faculties/{valid_faculty.id}",
+            json={"university_id": other.id, "name": "Taşınmayan Fakülte"},
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["university_id"] == valid_university.id
+
     def test_update_to_duplicate_name_rejected(self, client, db_session, admin_headers, valid_faculty, valid_university):
         from app.models.faculty import Faculty
 

@@ -43,6 +43,10 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
     cleanup_expired_verifications(db)
 
     department = get_active_or_400(db, Department, payload.department_id, "department_id")
+    # Bölüm aktif olsa da üstü silinmiş olabilir; silinmiş fakülte/üniversite zincirine kayıt
+    # olunmaz (create uçlarındaki "silinmiş üst kayda bağlama" kuralının kayıt tarafı).
+    if department.faculty.deleted_at is not None or department.faculty.university.deleted_at is not None:
+        raise HTTPException(status_code=400, detail="Geçersiz department_id")
 
     # E-posta domain'i hangi üniversiteye aitse bölüm de o üniversiteden seçilmek zorunda.
     allowed_university = EMAIL_DOMAIN_UNIVERSITIES.get(email_domain(payload.email))
@@ -221,6 +225,7 @@ def reset_password(request: Request, payload: ResetPasswordRequest, db: Session 
         raise HTTPException(status_code=400, detail="Kullanıcı bulunamadı")
 
     user.hashed_password = hash_password(payload.new_password)
+    user.password_changed_at = datetime.now(timezone.utc)
     db.delete(entry)
     db.commit()
 

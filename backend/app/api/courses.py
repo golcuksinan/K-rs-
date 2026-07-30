@@ -48,7 +48,8 @@ def _department_counts(db: Session, course_ids: list[int]) -> dict[int, int]:
         return {}
     rows = (
         db.query(CourseDepartment.course_id, func.count(CourseDepartment.department_id))
-        .filter(CourseDepartment.course_id.in_(course_ids))
+        .join(Department, Department.id == CourseDepartment.department_id)
+        .filter(CourseDepartment.course_id.in_(course_ids), Department.deleted_at.is_(None))
         .group_by(CourseDepartment.course_id)
         .all()
     )
@@ -106,6 +107,11 @@ def list_courses(
     # is_elective NULL olan dersler (müfredat verisi olmayan) hiçbir filtre dalında dönmez —
     # "zorunlu" ile "bilinmiyor" aynı kovaya konmaz.
     if department_id is not None:
+        # Var olmayan bölüm 200+boş yerine 404. Soft-delete edilmiş bölüm 404 DEĞİL: dersleri
+        # "Silinmiş Bölüm" maskesiyle listelenmeye devam eder (§6 "kalan kayıtlar dursun").
+        if db.query(Department.id).filter(Department.id == department_id).first() is None:
+            raise HTTPException(status_code=404, detail="Bölüm bulunamadı")
+
         # Müfredat verisi (ders, bölüm) ikilisine ait: bölüm dalında join satırından okunur.
         query = (
             db.query(Course, CourseDepartment)

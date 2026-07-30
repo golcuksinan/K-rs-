@@ -25,16 +25,23 @@ from app.services.ratings import APPROVED, EMPTY_RATING, rating_by_course_profes
 
 router = APIRouter(prefix="/course-professors", tags=["course-professors"])
 
-_SEASON_ORDER = {"güz": 0, "bahar": 1}
+# Akademik kronoloji: yıllık ders güz başlangıçlıdır, yaz okulu yılın en son dönemidir.
+_SEASON_ORDER = {"güz": 0, "yıllık": 1, "bahar": 2, "yaz": 3}
 
 def _parse_term_key(term: str) -> tuple[int, int]:
-    """'2025-2026 Güz' -> (2025, 0). Bilinmeyen formatı en sona atar."""
+    """'2025-2026 Güz' -> (2025, 0). Bilinmeyen formatı ve bilinmeyen dönemi en sona atar."""
     match = re.match(r"(\d{4})-\d{4}\s+(\S+)", term.strip())
     if not match:
         return (0, -1)
     start_year = int(match.group(1))
     season_rank = _SEASON_ORDER.get(match.group(2).lower(), -1)
     return (start_year, season_rank)
+
+
+def _latest_term(terms: list[str]) -> str:
+    """Aynı anahtara düşen dönemlerde (ör. iki ayrıştırılamayan metin) seçim string'e göre
+    kırılır — yoksa sonuç Postgres'in satır sırasına kalır, deterministik olmaz."""
+    return max(terms, key=lambda t: (_parse_term_key(t), t))
 
 @router.post("", response_model=CourseProfessorResponse, status_code=status.HTTP_201_CREATED)
 def create_course_professor(
@@ -118,7 +125,7 @@ def list_course_professors(
             .filter(CourseProfessor.course_id == course_id)
             .distinct()
         ]
-        term = max(terms, key=_parse_term_key) if terms else None
+        term = _latest_term(terms) if terms else None
 
     query = (
         db.query(CourseProfessor)

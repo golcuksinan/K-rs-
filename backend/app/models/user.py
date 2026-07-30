@@ -15,6 +15,8 @@ class User(Base):
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     enrollment_year = Column(Integer, nullable=False)  # giriş yılı; sınıf buradan anlık hesaplanır
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    # Şifre sıfırlandığında dolar: bu andan ÖNCE üretilmiş token'lar geçersiz sayılır (deps.py).
+    password_changed_at = Column(DateTime(timezone=True), nullable=True)
 
     department = relationship("Department")
     reviews = relationship("Review", back_populates="user")
