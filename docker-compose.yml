@@ -1,11 +1,17 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:16-alpine
+    container_name: kursu_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-kursu}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD gerekli}
       POSTGRES_DB: ${POSTGRES_DB:-kursu_db}
+    # Veritabanına DBeaver/pgAdmin gibi araçlarla kendi bilgisayarından bağlanabilmek için portu açtık
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,7 +21,10 @@ services:
       retries: 10
 
   api:
-    build: ./backend
+    build:
+      context: ./backend      # Docker'a backend klasörünün içine girmesini söyler
+      dockerfile: Dockerfile  # O klasördeki dosyanın adının tam olarak Dockerfile olduğunu belirtir
+    container_name: kursu_api
     restart: unless-stopped
     depends_on:
       db:
@@ -30,6 +39,9 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
     ports:
       - "${API_PORT:-8000}:8000"
+    # Geliştirme aşamasında kodu kaydettiğinde Docker'ı yeniden başlatmadan anında yansıması için:
+    volumes:
+      - ./backend:/app
 
 volumes:
   pgdata:
