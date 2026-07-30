@@ -54,6 +54,9 @@ def _to_response(course: Course, professor_count: int) -> CourseResponse:
         name=course.name,
         code=course.code,
         professor_count=professor_count,
+        semester_min=course.semester_min,
+        semester_max=course.semester_max,
+        is_elective=course.is_elective,
         department_id=course.department_id,
         department_name=masked_name(department.deleted_at, department.name, DELETED_DEPARTMENT),
         faculty_id=faculty.id,
@@ -69,6 +72,9 @@ def _to_response(course: Course, professor_count: int) -> CourseResponse:
 def list_courses(
     department_id: int | None = Query(default=None, description="Bölüm ID (verilmezse search zorunlu)"),
     search: str | None = Query(default=None, description="Ders adı/kodunda arama"),
+    is_elective: bool | None = Query(
+        default=None, description="true=seçmeli, false=zorunlu; verilmezse ikisi de"
+    ),
     params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
 ):
@@ -82,6 +88,11 @@ def list_courses(
 
     if department_id is not None:
         query = query.filter(Course.department_id == department_id)
+
+    # is_elective NULL olan dersler (müfredat verisi olmayan) hiçbir filtre dalında dönmez —
+    # "zorunlu" ile "bilinmiyor" aynı kovaya konmaz.
+    if is_elective is not None:
+        query = query.filter(Course.is_elective.is_(is_elective))
 
     if search:
         pattern = like_pattern(search)

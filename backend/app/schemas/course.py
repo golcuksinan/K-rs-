@@ -8,6 +8,11 @@ class CourseResponse(BaseModel):
     name: str
     code: str
     professor_count: int
+    # Müfredat verisi; PAÜ dışı ve elle açılan derslerde None. semester_min/max bir ARALIK,
+    # ders arada bir yarıyılda açılmıyor olabilir — etiket/sıralama içindir, filtre için değil.
+    semester_min: Optional[int] = None
+    semester_max: Optional[int] = None
+    is_elective: Optional[bool] = None
     department_id: int
     department_name: str
     faculty_id: int

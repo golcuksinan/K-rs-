@@ -8,8 +8,8 @@ class UserRole(str, enum.Enum):
 
 class Sinif(int, enum.Enum):
     """Hesaplanan sınıf — DB'de saklanmaz, User.enrollment_year'dan anlık hesaplanır
-    (bkz. app/core/academic.py). Sıralı int değerler bilinçli: CourseProfessor'daki
-    target_grade_min/max ile aralık (BETWEEN) karşılaştırması yapılabilsin diye."""
+    (bkz. app/core/academic.py). Yalnızca GET /users/me'de dönüyor: ders listelerini
+    sınıfa göre süzmek bilinçli olarak reddedildi (alttan/üstten ders — §9.3)."""
     HAZIRLIK = 0
     BIR = 1
     IKI = 2
