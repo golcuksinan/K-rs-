@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.db import base  # noqa: F401
 from app.core.limiter import limiter, NestedRouteSlowAPIMiddleware
-from app.api import auth, reviews, reports, course_professors, professors, universities, departments, courses, users, faculties
+from app.api import auth, reviews, reports, course_professors, professors, universities, departments, courses, users, faculties, admin_stats
 
 app = FastAPI(
     title="Kürsü API",
@@ -41,6 +41,7 @@ app.include_router(faculties.router)
 app.include_router(departments.router)
 app.include_router(courses.router)
 app.include_router(users.router)
+app.include_router(admin_stats.router)
 
 @app.get("/health")
 @limiter.exempt

@@ -32,6 +32,34 @@ class TestCreateReview:
         assert resp.status_code == 201, resp.text
         assert resp.json()["status"] == "pending"
 
+    def test_other_university_course_is_403(
+        self, client, db_session, student_factory, course_professor
+    ):
+        from conftest import _unique
+        from app.models.university import University
+        from app.models.faculty import Faculty
+        from app.models.department import Department
+
+        other_uni = University(name=_unique("Diğer Üniversite"), short_name="DGR", city="Ankara")
+        db_session.add(other_uni)
+        db_session.flush()
+        other_faculty = Faculty(university_id=other_uni.id, name=_unique("Diğer Fakülte"))
+        db_session.add(other_faculty)
+        db_session.flush()
+        other_department = Department(faculty_id=other_faculty.id, name=_unique("Diğer Bölüm"))
+        db_session.add(other_department)
+        db_session.commit()
+
+        outsider = student_factory(department_id=other_department.id)
+        login = client.post(
+            "/auth/login", json={"email": outsider["email"], "password": outsider["password"]}
+        )
+        assert login.status_code == 200, login.text
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        resp = client.post("/reviews", json=_review_payload(course_professor.id), headers=headers)
+        assert resp.status_code == 403, resp.text
+
     def test_nonexistent_course_professor_returns_404(self, client, student_headers):
         resp = client.post("/reviews", json=_review_payload(999999), headers=student_headers)
         assert resp.status_code == 404
@@ -161,7 +189,7 @@ class TestModerationBackgroundRace:
         )
         assert approved.status_code == 200
 
-        monkeypatch.setattr(reviews_module, "moderate_review", lambda review: "rejected")
+        monkeypatch.setattr(reviews_module, "moderate_review", lambda comment: "rejected")
         reviews_module._run_moderation_background(review_id)
 
         db_session.expire_all()
@@ -175,7 +203,7 @@ class TestModerationBackgroundRace:
 
         review_id = self._pending_review_id(client, student_headers, course_professor.id)
 
-        def _moderate_then_edit(review):
+        def _moderate_then_edit(comment):
             # HF beklenirken kullanıcı yorumu değiştirdi -> bu task'ın kararı bayat kaldı
             side = reviews_module.SessionLocal()
             side.query(Review).filter(Review.id == review_id).update(

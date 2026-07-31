@@ -62,6 +62,8 @@ ADMIN_ENDPOINTS = [
     ("patch", "/reviews/999999/edit-status", {"status": "approved"}),
     ("get", "/reports/pending", None),
     ("patch", "/reports/999999/status", {"status": "resolved"}),
+    ("get", "/admin/stats", None),
+    ("get", "/admin/stats/events", None),
 ]
 
 AUTH_ENDPOINTS = [

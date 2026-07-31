@@ -78,6 +78,7 @@ Yetki üç değerden biri: `public` · `auth` (Bearer zorunlu) · `admin` (rol=a
 | `reviews` | `GET /reviews` | `POST`, `GET /me`, `PATCH /{id}`, `DELETE /{id}` | `GET /pending`, `PATCH /{id}/status`, `PATCH /{id}/edit-status` |
 | `reports` | — | `POST`, `GET /me` | `GET /pending`, `PATCH /{id}/status` |
 | `users` | — | `GET /me` | — |
+| `admin/stats` | — | — | `GET /admin/stats`, `GET /admin/stats/events` |
 | — | `GET /health` | — | — |
 
 \* **Opsiyonel auth:** token varsa ve admin ise tüm review'lar görünür; token yoksa/geçersizse
@@ -188,8 +189,8 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
 
 ## 9. Bilinen kısıtlar (frontend tasarımını etkiler)
 
-- ⚠️ Postgres `ILIKE` Türkçe **`İ/ı` eşleşmesi yapmaz** — `"bilgisayar"` araması `"BİLGİSAYAR"`
-  bulmaz. Arama kutusu bu varsayımla tasarlanmalı.
+- Arama **Türkçe harf katlamasından** geçer: `İ/I/ı/i`, `ş/s`, `ğ/g`, `ü/u`, `ö/o`, `ç/c` ayrımı
+  yoktur — `"adıyaman"`, `"ADIYAMAN"` ve `"adiyaman"` aynı sonucu verir.
 - `GET /departments` **iki farklı şekil** döner: `faculty_id` verilirse düz bölüm listesi,
   verilmezse isim bazlı **gruplanmış** liste (`{department_name, faculties[]}`).
 - Farklı yazılmış ama anlamca aynı bölüm isimleri **ayrı grup** kalır (normalize edilmiyor).
@@ -244,3 +245,37 @@ göre yazar; düzeltmeler ayrı iş olarak sıraya girer.
 
 `info.version` = **`0.1.0`** artık bilinçli: 0.x, "sözleşme kırılabilir" demek ve yukarıdaki
 maddeler kapandıkça kırılacak. İlk kararlı sürümde 1.0.0'a çıkar.
+
+## 11. Admin metrik uçları
+
+İkisi de **admin**: `GET /admin/stats` (anlık durum) ve `GET /admin/stats/events` (olay
+sayaçları). ⚠️ İkisi de **`Page[T]` zarfı kullanmaz** — liste değil, düz nesne dönerler.
+
+- `/admin/stats` blokları: `users` (toplam / doğrulanmış / rol / kayıt yılı), `content` (aktif
+  üniversite→ders-hoca sayıları), `data_health` (hocasız ders, müfredatı boş ders-bölüm bağı),
+  `moderation` (review + rapor statü kırılımı, bekleyen düzenleme, süresi geçmemiş kayıt ve
+  şifre sıfırlama OTP'leri ayrı ayrı).
+  Her çağrı canlı sorgudur, önbellek yok (ölçülen toplam süre 10-35 ms).
+- ⚠️ **Bölüm/üniversite kırılımı bilinçli olarak YOK**: tek kullanıcılı bir bölümün sayısı o
+  kullanıcının yorumlarını kimliklendirebilirdi. Aynı sebeple hiçbir metrik yanıtında `user_id`,
+  e-posta veya review↔kullanıcı eşleşmesi bulunmaz.
+- `/admin/stats/events?days=30` (`days` 1..365) gün × olay matrisi döner: `series` pencerenin
+  **her** gününü, `counts` bilinen **her** olayı içerir (veri yoksa `0`) — istemci boşluk
+  doldurmaz. `totals` pencere toplamıdır. Gün sınırı **UTC**.
+- ⚠️ **Sayaçlar geçmişe dönük değildir**, yalnızca kod devreye girdikten sonrasını görür.
+  `first_recorded_day` ilk kaydın günüdür; ondan öncesindeki `0`'lar "olmadı" değil
+  **"ölçülmedi"** demektir — grafik bu tarihten öncesini kesmeli.
+- Olay adları `alan.olay` biçiminde: `auth.login_failed`, `mail.verification_sent`,
+  `review.created`, `report.resolved`, `moderation.rejected` … Liste kodda sabittir ama
+  büyüyebilir; istemci `events` dizisini okumalı, sabit anahtar kümesi varsaymamalı.
+- ⚠️ `moderation.failed` (HF'e ulaşılamadı) `moderation.pending`'in **alt kümesidir**: karar
+  verilemeyen yorum pending'e düşer, iki sayaç birden artar.
+
+## 12. Dağıtım
+
+- API **tek worker** ile çalıştırılır.
+- Reverse proxy arkasında `TRUSTED_PROXY_IPS` proxy'nin IP'siyle set edilmeli, yoksa rate limit
+  tüm kullanıcılar için tek kovaya düşer.
+- `ALLOWED_ORIGINS` prod'da daraltılmalı; varsayılan `*` dev davranışıdır.
+- `docker-compose.yml` yerel geliştirme içindir (Postgres portunu host'a açar, kaynak ağacını
+  imajın üzerine mount eder) — prod'a kopyalanmaz.

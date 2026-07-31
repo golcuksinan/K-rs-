@@ -24,6 +24,7 @@ from app.core.limiter import limiter
 from app.services.email_service import (
     send_verification_email, send_reset_email, send_already_registered_email,
 )
+from app.services.metrics import Event, increment
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -90,6 +91,7 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
     db.add(entry)
     db.commit()
 
+    increment(Event.AUTH_REGISTER_STARTED)
     send_verification_email(entry.email_plain, otp)
     return generic_response
 
@@ -118,6 +120,7 @@ def verify_otp_endpoint(request: Request, payload: VerifyOTPRequest, db: Session
     if not verify_otp(payload.otp, entry.otp_hash):
         entry.attempt_count += 1
         db.commit()
+        increment(Event.AUTH_OTP_FAILED)
         raise HTTPException(status_code=400, detail="Kod hatalı")
 
     # Cross-flow koruması: forgot-password kaydında bu iki alan boş kalır. Guard olmazsa
@@ -141,6 +144,7 @@ def verify_otp_endpoint(request: Request, payload: VerifyOTPRequest, db: Session
     db.commit()
     db.refresh(user)
 
+    increment(Event.AUTH_REGISTER_COMPLETED)
     token = create_access_token(user.id)
     return TokenResponse(access_token=token)
 
@@ -151,14 +155,19 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
     email_hash = hash_email(payload.email)
     user = db.query(User).filter(User.email_hash == email_hash).first()
 
+    # Sayaç yalnızca sayar: e-posta/IP tutulmaz. Üç dalın üçünde de tek increment var,
+    # yanıt süresi farkı adresin varlığını sızdırmasın.
     if not user:
         # Kullanıcı yokken de bcrypt maliyeti ödenir; yanıt her iki durumda da aynı.
         dummy_verify_password()
+        increment(Event.AUTH_LOGIN_FAILED)
         raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı")
 
     if not verify_password(payload.password, user.hashed_password):
+        increment(Event.AUTH_LOGIN_FAILED)
         raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı")
 
+    increment(Event.AUTH_LOGIN_SUCCEEDED)
     token = create_access_token(user.id)
     return TokenResponse(access_token=token)
 
@@ -195,6 +204,7 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Sessio
     db.add(entry)
     db.commit()
 
+    increment(Event.AUTH_PASSWORD_RESET_REQUESTED)
     send_reset_email(entry.email_plain, otp)
     return generic_response
 
@@ -218,6 +228,7 @@ def reset_password(request: Request, payload: ResetPasswordRequest, db: Session 
     if not verify_otp(payload.otp, entry.otp_hash):
         entry.attempt_count += 1
         db.commit()
+        increment(Event.AUTH_OTP_FAILED)
         raise HTTPException(status_code=400, detail="Kod hatalı")
 
     user = db.query(User).filter(User.email_hash == email_hash).first()
@@ -229,4 +240,5 @@ def reset_password(request: Request, payload: ResetPasswordRequest, db: Session 
     db.delete(entry)
     db.commit()
 
+    increment(Event.AUTH_PASSWORD_RESET_COMPLETED)
     return MessageResponse(message="Şifreniz güncellendi")

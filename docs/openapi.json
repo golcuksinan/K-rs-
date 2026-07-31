@@ -2191,6 +2191,84 @@
         ]
       }
     },
+    "/admin/stats": {
+      "get": {
+        "tags": [
+          "admin-stats"
+        ],
+        "summary": "Platform Stats",
+        "operationId": "platform_stats_admin_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/stats/events": {
+      "get": {
+        "tags": [
+          "admin-stats"
+        ],
+        "summary": "Event Stats",
+        "operationId": "event_stats_admin_stats_events_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "description": "Kaç günlük pencere",
+              "default": 30,
+              "title": "Days"
+            },
+            "description": "Kaç günlük pencere"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",
@@ -2210,6 +2288,49 @@
   },
   "components": {
     "schemas": {
+      "ContentStats": {
+        "properties": {
+          "universities": {
+            "type": "integer",
+            "title": "Universities"
+          },
+          "faculties": {
+            "type": "integer",
+            "title": "Faculties"
+          },
+          "departments": {
+            "type": "integer",
+            "title": "Departments"
+          },
+          "courses": {
+            "type": "integer",
+            "title": "Courses"
+          },
+          "course_departments": {
+            "type": "integer",
+            "title": "Course Departments"
+          },
+          "professors": {
+            "type": "integer",
+            "title": "Professors"
+          },
+          "course_professors": {
+            "type": "integer",
+            "title": "Course Professors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "universities",
+          "faculties",
+          "departments",
+          "courses",
+          "course_departments",
+          "professors",
+          "course_professors"
+        ],
+        "title": "ContentStats"
+      },
       "CourseCreate": {
         "properties": {
           "department_id": {
@@ -2662,6 +2783,24 @@
         "type": "object",
         "title": "CourseUpdate"
       },
+      "DataHealthStats": {
+        "properties": {
+          "courses_without_professor": {
+            "type": "integer",
+            "title": "Courses Without Professor"
+          },
+          "course_departments_without_curriculum": {
+            "type": "integer",
+            "title": "Course Departments Without Curriculum"
+          }
+        },
+        "type": "object",
+        "required": [
+          "courses_without_professor",
+          "course_departments_without_curriculum"
+        ],
+        "title": "DataHealthStats"
+      },
       "DepartmentCreate": {
         "properties": {
           "faculty_id": {
@@ -2754,6 +2893,91 @@
         },
         "type": "object",
         "title": "DepartmentUpdate"
+      },
+      "EventDayCounts": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "counts"
+        ],
+        "title": "EventDayCounts"
+      },
+      "EventStatsResponse": {
+        "properties": {
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          },
+          "start_day": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Day"
+          },
+          "end_day": {
+            "type": "string",
+            "format": "date",
+            "title": "End Day"
+          },
+          "first_recorded_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Recorded Day"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Totals"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/EventDayCounts"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "days",
+          "start_day",
+          "end_day",
+          "first_recorded_day",
+          "events",
+          "totals",
+          "series"
+        ],
+        "title": "EventStatsResponse",
+        "description": "`series` pencerenin HER günü için, `counts` bilinen HER olay için doludur\n(veri olmayan gün/olay 0) — istemci boşluk doldurmaz.\n\n`first_recorded_day` sayaçların devreye girdiği gün: ondan öncesi ölçülmedi,\n\"0\" ile \"veri yok\" bu alanla ayrılır."
       },
       "FacultyCreate": {
         "properties": {
@@ -2885,6 +3109,55 @@
           "message"
         ],
         "title": "MessageResponse"
+      },
+      "ModerationStats": {
+        "properties": {
+          "reviews_total": {
+            "type": "integer",
+            "title": "Reviews Total"
+          },
+          "reviews_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Reviews By Status"
+          },
+          "reviews_with_pending_edit": {
+            "type": "integer",
+            "title": "Reviews With Pending Edit"
+          },
+          "reports_total": {
+            "type": "integer",
+            "title": "Reports Total"
+          },
+          "reports_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Reports By Status"
+          },
+          "pending_registration_verifications": {
+            "type": "integer",
+            "title": "Pending Registration Verifications"
+          },
+          "pending_password_resets": {
+            "type": "integer",
+            "title": "Pending Password Resets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviews_total",
+          "reviews_by_status",
+          "reviews_with_pending_edit",
+          "reports_total",
+          "reports_by_status",
+          "pending_registration_verifications",
+          "pending_password_resets"
+        ],
+        "title": "ModerationStats"
       },
       "Page_CourseProfessorListItem_": {
         "properties": {
@@ -3717,6 +3990,36 @@
         "title": "Sinif",
         "description": "Hesaplanan sınıf — DB'de saklanmaz, User.enrollment_year'dan anlık hesaplanır\n(bkz. app/core/academic.py). Yalnızca GET /users/me'de dönüyor: ders listelerini\nsınıfa göre süzmek bilinçli olarak reddedildi (alttan/üstten ders — §9.3)."
       },
+      "StatsResponse": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "users": {
+            "$ref": "#/components/schemas/UserStats"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentStats"
+          },
+          "data_health": {
+            "$ref": "#/components/schemas/DataHealthStats"
+          },
+          "moderation": {
+            "$ref": "#/components/schemas/ModerationStats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "users",
+          "content",
+          "data_health",
+          "moderation"
+        ],
+        "title": "StatsResponse"
+      },
       "TokenResponse": {
         "properties": {
           "access_token": {
@@ -3936,6 +4239,46 @@
           "mezun"
         ],
         "title": "UserRole"
+      },
+      "UserStats": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "verified": {
+            "type": "integer",
+            "title": "Verified"
+          },
+          "unverified": {
+            "type": "integer",
+            "title": "Unverified"
+          },
+          "by_role": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Role"
+          },
+          "by_enrollment_year": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Enrollment Year"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "verified",
+          "unverified",
+          "by_role",
+          "by_enrollment_year"
+        ],
+        "title": "UserStats",
+        "description": "⚠️ Bölüm/üniversite kırılımı bilinçli olarak YOK: tek kullanıcılı bir bölümün\nsayısı yayınlanırsa o kullanıcının yorumları kimliklendirilebilir."
       },
       "ValidationError": {
         "properties": {

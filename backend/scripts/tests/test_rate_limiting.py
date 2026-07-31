@@ -32,3 +32,36 @@ class TestRateLimiting:
 
         assert statuses[:5] == [401] * 5
         assert statuses[5] == 429
+
+
+def _drain_until_429(client, forwarded_for):
+    for _ in range(105):
+        resp = client.get("/universities", headers={"X-Forwarded-For": forwarded_for})
+        if resp.status_code == 429:
+            return
+    raise AssertionError("limit tetiklenmedi")
+
+
+class TestForwardedForKey:
+    def test_forwarded_for_ignored_without_trusted_proxy(self, client, enable_rate_limiting):
+        # Eşitlik üzerinden iddia ediliyor: pencere tam araya denk gelirse ikisi de 200 olur,
+        # ayrı kovalara düşen bozuk bir uygulamada ise ikisi ayrışır.
+        _drain_until_429(client, "1.1.1.1")
+
+        other = client.get("/universities", headers={"X-Forwarded-For": "2.2.2.2"})
+        same = client.get("/universities", headers={"X-Forwarded-For": "1.1.1.1"})
+
+        assert other.status_code == same.status_code
+
+    def test_forwarded_for_splits_buckets_behind_trusted_proxy(
+        self, client, enable_rate_limiting, monkeypatch
+    ):
+        from app.core.config import settings
+
+        # TestClient'ta request.client.host "testclient" stringidir.
+        monkeypatch.setattr(settings, "TRUSTED_PROXY_IPS", "testclient")
+        _drain_until_429(client, "1.1.1.1")
+
+        other = client.get("/universities", headers={"X-Forwarded-For": "2.2.2.2"})
+
+        assert other.status_code == 200

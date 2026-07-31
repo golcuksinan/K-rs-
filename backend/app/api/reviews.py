@@ -16,18 +16,27 @@ from app.schemas.review import ReviewCreate, ReviewResponse, ReviewStatusUpdate,
 from app.api.common import PageParams, get_active_or_400, pagination, paginated
 from app.api.deps import get_current_user, get_current_admin_user
 from app.services.ai_service import moderate_review
+from app.services.metrics import Event, increment
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 def _run_moderation_background(review_id: int):
+    # HF çağrısı saniyeler sürebilir; hiçbir DB transaction'ı onu kapsamamalı, yoksa
+    # bağlantı o süre boyunca havuzdan çıkmış hâlde idle in transaction bekler.
     db = SessionLocal()
     try:
-        review = db.query(Review).filter(Review.id == review_id).first()
-        if review is None:
-            return
-        moderated_comment = review.comment
-        verdict = moderate_review(review)
+        row = db.query(Review.comment).filter(Review.id == review_id).first()
+    finally:
+        db.close()
+    if row is None:
+        return
+    moderated_comment = row[0]
+
+    verdict = moderate_review(moderated_comment)
+
+    db = SessionLocal()
+    try:
         # HF çağrısı sürerken araya admin kararı (status artık pending değil) veya kullanıcı
         # düzenlemesi (comment değişti) girmiş olabilir; ikisi de bu task'ı geçersiz kılar —
         # değişen metni zaten yeni bir task moderasyona sokmuştur.
@@ -55,7 +64,12 @@ def create_review(
     ).first()
     if not course_professor:
         raise HTTPException(status_code=404, detail="Ders/hoca eşleşmesi bulunamadı")
-    get_active_or_400(db, Course, course_professor.course_id, "course_id")
+    course = get_active_or_400(db, Course, course_professor.course_id, "course_id")
+    if course.university_id != current_user.department.faculty.university_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Yalnızca kendi üniversitenizin derslerini değerlendirebilirsiniz",
+        )
 
     review = Review(
         user_id=current_user.id,
@@ -77,6 +91,7 @@ def create_review(
         )
 
     db.refresh(review)
+    increment(Event.REVIEW_CREATED)
     # review.status model default'u "pending" — AI moderasyonu arka planda çalışıp güncelleyecek
     background_tasks.add_task(_run_moderation_background, review.id)
     return review
@@ -116,6 +131,7 @@ def update_my_review(
         review.pending_comment = payload.comment
         review.has_pending_edit = True
         db.commit()
+        increment(Event.REVIEW_EDIT_REQUESTED)
     else:
         # pending / rejected -> direkt güncellenir, create ile aynı moderasyon döngüsüne girer
         review.teaching_score = payload.teaching_score
@@ -189,6 +205,7 @@ def update_review_status(
         review.has_pending_edit = False
 
     db.commit()
+    increment(Event.REVIEW_APPROVED if payload.status == "approved" else Event.REVIEW_REJECTED)
     db.refresh(review)
     return review
 
@@ -220,6 +237,9 @@ def update_review_edit_status(
     review.has_pending_edit = False
 
     db.commit()
+    increment(
+        Event.REVIEW_EDIT_APPROVED if payload.status == "approved" else Event.REVIEW_EDIT_REJECTED
+    )
     db.refresh(review)
     return review
 

@@ -2,6 +2,7 @@ import enum
 import logging
 import httpx
 from app.core.config import settings
+from app.services.metrics import Event, increment
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,14 @@ TOXIC_LABELS = {"toxic", "severe_toxic", "obscene", "threat", "insult", "identit
 # insan onayına düşer, altı otomatik onaylanır.
 REJECT_THRESHOLD = 0.70
 PENDING_THRESHOLD = 0.35
+
+
+def _undecided() -> ModerationStatus:
+    """Moderasyonun karar üretemediği her dal buradan döner: yorum insan onayına düşer ve
+    olay sayılır. ⚠️ Senkron DB yazımı async fonksiyon içinde çağrılıyor; `asyncio.run`
+    altında tek başına çalıştığı için paylaşılan bir event loop bloke etmiyor."""
+    increment(Event.MODERATION_FAILED)
+    return ModerationStatus.PENDING
 
 
 def _normalize_hf_url(url: str) -> str:
@@ -39,7 +48,7 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
 
     if not settings.HF_API_TOKEN:
         logger.warning("HF_API_TOKEN missing, moderation falls back to pending")
-        return ModerationStatus.PENDING
+        return _undecided()
 
     hf_url = _normalize_hf_url(settings.HF_MODEL_URL)
     headers = {"Authorization": f"Bearer {settings.HF_API_TOKEN}"}
@@ -56,7 +65,7 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
 
         if response.status_code != 200:
             logger.warning(f"HF API non-200 response: {response.status_code}")
-            return ModerationStatus.PENDING
+            return _undecided()
 
         result = response.json()
 
@@ -79,10 +88,10 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
                 return ModerationStatus.PENDING
             return ModerationStatus.APPROVED
 
-        return ModerationStatus.PENDING
+        return _undecided()
 
     except Exception as e:
         logger.error(f"Hugging Face Moderation Service Error: {str(e)}")
         # Hata yukarı fırlatılmaz: moderasyon servisi review yazma akışını kırmamalı,
         # karar veremediğimiz yorum insan onayına düşer.
-        return ModerationStatus.PENDING
+        return _undecided()

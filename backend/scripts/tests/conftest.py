@@ -57,6 +57,7 @@ from app.models.professor import Professor  # noqa: E402
 from app.models.course_professor import CourseProfessor  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.services import ai_service  # noqa: E402
+from app.services import metrics  # noqa: E402
 from app.services.moderation import ModerationStatus  # noqa: E402
 
 DEFAULT_PASSWORD = "sifre123"
@@ -135,6 +136,59 @@ def _disable_email_domain_university_check(monkeypatch):
     hepsini reddederdi. Kontrolü test eden testler auth_module üzerinden kendi haritasını yazar.
     Şema tarafındaki domain doğrulaması (is_valid_edu_tr_email) bundan etkilenmez, açık kalır."""
     monkeypatch.setattr(auth_module, "EMAIL_DOMAIN_UNIVERSITIES", {})
+
+
+class _NullSession:
+    """metrics.increment() bunu alırsa hiçbir şey yazmaz."""
+
+    def execute(self, *args, **kwargs):
+        pass
+
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
+
+    def close(self):
+        pass
+
+
+@pytest.fixture(autouse=True)
+def _isolate_metrics(request, monkeypatch):
+    """Olay sayacı kendi SessionLocal'ını açıp COMMIT eder (bilinçli: sayaç isteğin
+    transaction'ına bağlı değil) — testte gerçek dev DB'ye kalıcı satır bırakırdı.
+    DB kullanan testlerde testin connection'ına bağlanır, DB'ye hiç bağlanmayan
+    testlerde (test_moderation.py) sayaç hiç yazılmaz."""
+    if "db_connection" in request.fixturenames:
+        monkeypatch.setattr(
+            metrics, "SessionLocal", _joined_session_factory(request.getfixturevalue("db_connection"))
+        )
+    else:
+        monkeypatch.setattr(metrics, "SessionLocal", _NullSession)
+
+
+@pytest.fixture()
+def real_metrics_session(_isolate_metrics, monkeypatch):
+    """`_isolate_metrics`'i geri alır: sayaç gerçekten kendi bağlantısını açıp COMMIT eder.
+    Yazılan satır dev DB'de kalıcı olur, `written`'a eklenen olay adları fixture çıkarken
+    silinir. `_isolate_metrics`'e bağımlı ki patch sırası garanti olsun."""
+    from app.db.session import SessionLocal as RealSessionLocal
+    from app.models.event_counter import EventDailyCounter
+
+    monkeypatch.setattr(metrics, "SessionLocal", RealSessionLocal)
+    written: list = []
+    yield written
+
+    if written:
+        cleanup = RealSessionLocal()
+        try:
+            cleanup.query(EventDailyCounter).filter(
+                EventDailyCounter.event.in_(written)
+            ).delete(synchronize_session=False)
+            cleanup.commit()
+        finally:
+            cleanup.close()
 
 
 @pytest.fixture()

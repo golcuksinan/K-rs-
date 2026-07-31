@@ -2,11 +2,12 @@ from typing import Callable, Iterable, Optional
 
 from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware, _should_exempt, sync_check_limits
-from slowapi.util import get_remote_address
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Match
 from starlette.types import Scope
+
+from app.core.config import settings
 
 # ⚠️ Sayaçlar süreç içinde tutulur: slowapi'ye paylaşımlı storage verilmedi (projede Redis yok,
 # slowapi de Postgres desteklemiyor). Bu yüzden API **tek worker** ile çalıştırılmak zorunda —
@@ -16,7 +17,23 @@ from starlette.types import Scope
 # pencere bu yüzden var — 100/dakika tek başına saniyede 100 isteğe izin verir, DB havuzu ise
 # 15 eşzamanlı sorgu kaldırır. 20 sınırı havuzun hemen üstünde; meşru bir sayfa yüklemesinin
 # paralel istek sayısının ise çok üstünde (kısa pencere aynı zamanda paralelliğe sert tavandır).
-limiter = Limiter(key_func=get_remote_address, default_limits=["20/second;100/minute"])
+# ⚠️ Reverse proxy arkasında `TRUSTED_PROXY_IPS` set edilmezse tüm istemciler proxy'nin IP'si
+# olarak görünür ve tek kovayı paylaşır.
+
+
+def client_ip(request: Request) -> str:
+    """X-Forwarded-For yalnızca istek güvenilir ilan edilmiş bir proxy'den geliyorsa okunur;
+    aksi halde başlık spoof edilerek limit tamamen atlatılabilirdi."""
+    host = request.client.host if request.client else "127.0.0.1"
+    if host in settings.trusted_proxy_ips_list:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    return host
+
+
+limiter = Limiter(key_func=client_ip, default_limits=["20/second;100/minute"])
 
 
 def _resolve_handler(route: BaseRoute, scope: Scope) -> Optional[Callable]:

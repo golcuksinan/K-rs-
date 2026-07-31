@@ -15,7 +15,7 @@ class Review(Base):
     difficulty_score = Column(Integer, nullable=False)
     fairness_score = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
-    status = Column(String, default="pending")
+    status = Column(String, nullable=False, server_default="pending", default="pending")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # status == approved iken düzenleme yapılırsa buraya yazılır, admin onaylayana kadar

@@ -18,3 +18,4 @@ from app.models.user import User
 from app.models.review import Review
 from app.models.report import Report
 from app.models.email_verification import EmailVerification
+from app.models.event_counter import EventDailyCounter

@@ -10,6 +10,7 @@ from app.schemas.common import Page
 from app.schemas.report import ReportCreate, ReportResponse, ReportStatusUpdate
 from app.api.common import PageParams, pagination, paginated
 from app.api.deps import get_current_user, get_current_admin_user
+from app.services.metrics import Event, increment
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -41,6 +42,7 @@ def create_report(
         )
 
     db.refresh(report)
+    increment(Event.REPORT_CREATED)
     return report
 
 
@@ -71,6 +73,7 @@ def update_report_status(
 
     report.status = payload.status
     db.commit()
+    increment(Event.REPORT_RESOLVED if payload.status == "resolved" else Event.REPORT_DISMISSED)
     db.refresh(report)
     return report
 
