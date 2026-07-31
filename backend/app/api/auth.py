@@ -14,7 +14,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest, ResetPasswordRequest, MessageResponse,
 )
 from app.core.security import (
-    EMAIL_DOMAIN_UNIVERSITIES, email_domain,
+    EMAIL_DOMAIN_UNIVERSITIES, email_domain, tr_casefold,
     hash_email, hash_password, verify_password, dummy_verify_password,
     generate_otp, hash_otp, verify_otp,
     create_access_token,
@@ -50,7 +50,7 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
 
     # E-posta domain'i hangi üniversiteye aitse bölüm de o üniversiteden seçilmek zorunda.
     allowed_university = EMAIL_DOMAIN_UNIVERSITIES.get(email_domain(payload.email))
-    if allowed_university is not None and department.faculty.university.name != allowed_university:
+    if allowed_university is not None and tr_casefold(department.faculty.university.name) != tr_casefold(allowed_university):
         raise HTTPException(
             status_code=400,
             detail=f"Bu e-posta adresiyle yalnızca {allowed_university} bölümlerine kayıt olunabilir",

@@ -30,6 +30,10 @@ def dummy_verify_password() -> None:
     e-postanın kayıtlı olup olmadığını sızdırır (timing enumeration)."""
     pwd_context.dummy_verify()
 
+def tr_casefold(text: str) -> str:
+    # Python'un .lower()'ı 'İ'yi i + combining dot yapar; Türkçe eşleşme için elle çevrilir.
+    return text.replace("İ", "i").replace("I", "ı").lower()
+
 def normalize_email(email: str) -> str:
     return email.strip().lower()
 

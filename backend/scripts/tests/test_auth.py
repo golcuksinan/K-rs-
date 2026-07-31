@@ -100,6 +100,22 @@ class TestRegister:
         assert resp.status_code == 200
         assert "verification" in otp_capture
 
+    def test_register_university_match_is_case_insensitive(
+        self, client, monkeypatch, valid_department, valid_university, otp_capture
+    ):
+        from app.api import auth as auth_module
+
+        # Snapshot verisi büyük harf ("PAMUKKALE ÜNİVERSİTESİ"), harita başlık biçiminde ->
+        # case-sensitive != her kaydı reddederdi (B1). tr_casefold ile eşleşmeli.
+        tr_upper = valid_university.name.replace("i", "İ").replace("ı", "I").upper()
+        monkeypatch.setattr(
+            auth_module, "EMAIL_DOMAIN_UNIVERSITIES",
+            {"posta.pau.edu.tr": tr_upper},
+        )
+        resp = client.post("/auth/register", json=register_payload(valid_department.id))
+        assert resp.status_code == 200
+        assert "verification" in otp_capture
+
     def test_register_non_edu_tr_email_rejected(self, client, valid_department):
         payload = register_payload(valid_department.id, email="ogrenci@gmail.com")
         resp = client.post("/auth/register", json=payload)
