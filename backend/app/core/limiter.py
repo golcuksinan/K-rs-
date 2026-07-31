@@ -9,17 +9,6 @@ from starlette.types import Scope
 
 from app.core.config import settings
 
-# ⚠️ Sayaçlar süreç içinde tutulur: slowapi'ye paylaşımlı storage verilmedi (projede Redis yok,
-# slowapi de Postgres desteklemiyor). Bu yüzden API **tek worker** ile çalıştırılmak zorunda —
-# N worker'ın her biri kendi sayacını tutar, efektif limit sessizce N katına çıkar. Ölçekleme
-# önce paylaşımlı bir limiter backend'i gerektirir; `--workers`/`--scale` ile çoğaltılmamalı.
-# Strateji fixed-window: tek bir limit pencerenin başında tamamen harcanabilir. Saniyelik
-# pencere bu yüzden var — 100/dakika tek başına saniyede 100 isteğe izin verir, DB havuzu ise
-# 15 eşzamanlı sorgu kaldırır. 20 sınırı havuzun hemen üstünde; meşru bir sayfa yüklemesinin
-# paralel istek sayısının ise çok üstünde (kısa pencere aynı zamanda paralelliğe sert tavandır).
-# ⚠️ Reverse proxy arkasında `TRUSTED_PROXY_IPS` set edilmezse tüm istemciler proxy'nin IP'si
-# olarak görünür ve tek kovayı paylaşır.
-
 
 def client_ip(request: Request) -> str:
     """X-Forwarded-For yalnızca istek güvenilir ilan edilmiş bir proxy'den geliyorsa okunur;
