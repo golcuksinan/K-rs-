@@ -8,8 +8,6 @@ from sqlalchemy import func
 from sqlalchemy.orm import Query as SAQuery, Session
 
 
-# ---------- Sayfalama ----------
-
 @dataclass(frozen=True)
 class PageParams:
     limit: int
@@ -41,8 +39,6 @@ def paginated(query: SAQuery, params: PageParams) -> dict:
     return page(items, total, params)
 
 
-# ---------- Arama ----------
-
 def like_pattern(term: str) -> str:
     """Kullanıcı girdisini `like` deseni için hazırlar: `%`/`_` joker olarak değil
     literal olarak eşleşir. Doğrudan çağrılmaz, `search_filter()` üzerinden kullanılır."""
@@ -69,8 +65,6 @@ def search_filter(column: Any, term: str) -> Any:
     folded_column = func.lower(func.translate(column, _TR_CHARS, _ASCII_CHARS))
     return folded_column.like(like_pattern(tr_fold(term)), escape="\\")
 
-
-# ---------- Soft-delete doğrulaması ----------
 
 def get_active_or_400(db: Session, model: Type[Any], obj_id: int, field_name: str) -> Any:
     """Payload'dan gelen FK'yi doğrular: silinmemiş kayıt yoksa 400."""

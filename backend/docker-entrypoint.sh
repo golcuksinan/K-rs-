@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Hata durumunda scripti durdur
 set -e
 
 echo "Alembic migration'ları uygulanıyor..."

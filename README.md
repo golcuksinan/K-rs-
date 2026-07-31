@@ -1,4 +1,4 @@
-# 🎓 Kürsü
+# Kürsü
 
 **Kürsü**, öğrencilerin aldıkları dersler ve akademisyenler hakkında **anonim olarak** yorum yapıp puan verebildiği, topluluk odaklı bir akademik değerlendirme platformudur. Kullanıcılar hoca ismiyle arama yaparak geçmiş öğrencilerin deneyimlerini (ders anlatımı, sınav zorluğu, notlandırma tarzı vb.) inceleyebilir.
 
@@ -6,17 +6,17 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 
 ---
 
-##  Öne Çıkan Özellikler
+## Öne Çıkan Özellikler
 
--  **Akıllı Arama** — Hoca veya ders ismiyle hızlı ve anlık arama
--  **Çok Boyutlu Puanlama** — Ders anlatımı, sınav zorluğu, notlandırma tarzı gibi kriterlere göre değerlendirme
--  **Tam Anonimlik** — Kullanıcı kimliği hiçbir şekilde yorumlarla ilişkilendirilmez
--  **AI Destekli Moderasyon** — Küfür, hakaret veya nefret söylemi içeren yorumların yayın öncesi taranması
--  **Ders & Hoca Profilleri** — Geçmiş dönemlere ait yorum ve puan geçmişinin tutulması
-  
+- **Akıllı Arama** — Hoca veya ders ismiyle hızlı ve anlık arama
+- **Çok Boyutlu Puanlama** — Ders anlatımı, sınav zorluğu, notlandırma tarzı gibi kriterlere göre değerlendirme
+- **Tam Anonimlik** — Kullanıcı kimliği hiçbir şekilde yorumlarla ilişkilendirilmez
+- **AI Destekli Moderasyon** — Küfür, hakaret veya nefret söylemi içeren yorumların yayın öncesi taranması
+- **Ders & Hoca Profilleri** — Geçmiş dönemlere ait yorum ve puan geçmişinin tutulması
+
 ---
 
-##  Teknolojik Yığın
+## Teknolojik Yığın
 
 | Katman | Teknoloji | Açıklama |
 |--------|-----------|----------|
@@ -28,13 +28,13 @@ Bu proje, öğrencilerin hem ders seçim sürecinde hem de üniversite tercih d�
 ---
 
 ## Veritabanı Şeması
- 
+
 Aşağıda platformun temel varlık-ilişki diyagramı (ERD) yer almaktadır. Diyagramı canlı ve etkileşimli olarak görüntülemek için:
- 
+
 **[Veritabanı Şemasını Görüntüle](https://golcuksinan.github.io/K-rs-/database-schema.html)**
- 
+
 (veya `docs/database-schema.html` dosyasını indirip herhangi bir tarayıcıda açabilirsiniz)
 
-## 📄 Lisans
+## Lisans
 
 Bu proje eğitim amaçlı bir üniversite topluluğu projesidir. Lisans bilgisi için `LICENSE` dosyasına bakınız.

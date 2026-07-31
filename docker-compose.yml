@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
@@ -9,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-kursu}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD gerekli}
       POSTGRES_DB: ${POSTGRES_DB:-kursu_db}
-    # Veritabanına DBeaver/pgAdmin gibi araçlarla kendi bilgisayarından bağlanabilmek için portu açtık
+    # Host'tan DBeaver/pgAdmin ile bağlanabilmek için açık.
     ports:
       - "5432:5432"
     volumes:
@@ -22,21 +20,19 @@ services:
 
   api:
     build:
-      context: ./backend      # Docker'a backend klasörünün içine girmesini söyler
-      dockerfile: Dockerfile  # O klasördeki dosyanın adının tam olarak Dockerfile olduğunu belirtir
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: kursu_api
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+    # Uygulama ayarlarının tek kaynağı; kök .env yalnızca postgres/port değişkenlerini taşır.
+    env_file:
+      - ./backend/.env
+    # env_file'ı ezer: konteyner içinde host localhost değil db servisidir.
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-kursu}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-kursu_db}
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY gerekli}
-      EMAIL_PEPPER_KEY: ${EMAIL_PEPPER_KEY:?EMAIL_PEPPER_KEY gerekli}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
-      HF_API_TOKEN: ${HF_API_TOKEN:-}
-      HF_MODEL_URL: ${HF_MODEL_URL:-https://router.huggingface.co/hf-inference/models/unitary/toxic-bert}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
     ports:
       - "${API_PORT:-8000}:8000"
     # Geliştirme aşamasında kodu kaydettiğinde Docker'ı yeniden başlatmadan anında yansıması için:

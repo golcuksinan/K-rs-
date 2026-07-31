@@ -70,7 +70,6 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
         send_already_registered_email(payload.email.strip().lower())
         return generic_response
 
-    # Aynı mail için önceki bekleyen kayıt varsa temizle, yenisini oluştur
     existing = db.query(EmailVerification).filter(
         EmailVerification.email_hash == email_hash
     ).first()

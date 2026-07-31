@@ -10,15 +10,15 @@ hazırlığın kendisidir.
 | `backend/Dockerfile` | API imajı (python:3.12-slim, non-root `kursu` kullanıcısı) |
 | `backend/docker-entrypoint.sh` | DB'yi bekler → `alembic upgrade head` → uvicorn |
 | `docker-compose.yml` | `db` (postgres:16-alpine, named volume) + `api` |
-| `.env.example` | compose değişkenleri (kök dizin) |
-| `backend/.env.example` | Docker'sız lokal çalıştırma değişkenleri |
+| `.env.example` | postgres kullanıcı/parola/db ve `API_PORT` (kök dizin) |
+| `backend/.env.example` | uygulama ayarları; compose bunu `env_file` ile yükler |
 
 ## Adımlar
 
 ```bash
-cp .env.example .env          # proje kökünde
-# SECRET_KEY / EMAIL_PEPPER_KEY: openssl rand -hex 32
-# POSTGRES_PASSWORD ve ALLOWED_ORIGINS doldurulur
+cp .env.example .env                  # POSTGRES_PASSWORD doldurulur
+cp backend/.env.example backend/.env  # SECRET_KEY / EMAIL_PEPPER_KEY: openssl rand -hex 32
+                                      # ALLOWED_ORIGINS prod'da daraltılır
 docker compose up -d --build
 curl http://localhost:8000/health
 ```
@@ -26,7 +26,7 @@ curl http://localhost:8000/health
 Migration'lar konteyner açılışında otomatik koşar. Elle koşmak için:
 
 ```bash
-docker compose run --rm -e RUN_MIGRATIONS=0 api alembic upgrade head
+docker compose run --rm --entrypoint alembic api upgrade head
 ```
 
 ## Kararlar ve tuzaklar
@@ -35,15 +35,17 @@ docker compose run --rm -e RUN_MIGRATIONS=0 api alembic upgrade head
   sayacını tutar, N worker limiti N katına çıkarır. `CMD`'de `--workers` verilmedi (varsayılan 1).
   `docker compose up --scale api=N` **yapılmamalı**; ölçekleme önce paylaşımlı bir limiter
   backend'i gerektirir.
-- **Kapasite (ölçülmedi, tahmin).** Asıl tavan worker değil DB havuzu: `create_engine` varsayılanla
-  çağrıldığı için aynı anda 15 sorgu (`pool_size=5 + max_overflow=10`), kabaca 60-120 istek/sn,
-  ~300 eşzamanlı aktif kullanıcı. PAÜ ölçeğinde yeterli. Sıkışırsa ilk müdahale havuzu büyütmek
-  (`pool_size=20, pool_pre_ping=True`), worker eklemek değil.
+- **Kapasite (ölçülmedi, tahmin).** Asıl tavan worker değil DB havuzu: `pool_size=10 +
+  max_overflow=20` ile aynı anda 30 sorgu. PAÜ ölçeğinde yeterli. Sıkışırsa ilk müdahale
+  `DB_POOL_SIZE`/`DB_MAX_OVERFLOW`'u büyütmek, worker eklemek değil — postgres'in
+  `max_connections`'ı (varsayılan 100) tavanı belirler.
 - ⚠️ **Rate limit kampüs NAT'ında patlar.** Limitler IP başına (global `20/second;100/minute`); kampüs
   wifi'sinden gelen herkes tek çıkış IP'si paylaşırsa ortak kotaya girer ve içeriden 429 yer.
   Bilinen açık, canlıya çıkmadan çözülmeli (bkz. CLAUDE.md §11).
-- **`DATABASE_URL` compose'da üretiliyor**, `.env`'e elle yazılmaz: host `localhost` değil `db`.
-  Konteyner içinde `.env` dosyası yoktur (`.dockerignore`); ayarlar ortam değişkeninden okunur.
+- **Değişkenlerin tek sahibi vardır.** Kök `.env` yalnızca postgres ve port değişkenlerini taşır;
+  uygulama ayarları `backend/.env`'dedir ve compose'a `env_file` ile girer. Tek istisna
+  `DATABASE_URL`: compose'da üretilir ve `env_file`'daki değeri ezer, çünkü konteyner içinde host
+  `localhost` değil `db`'dir. Aynı anahtarı iki dosyaya yazma — ayrışırlar.
 - **`EMAIL_PEPPER_KEY` rotate edilmez.** Değişirse tüm `users.email_hash` değerleri geçersiz olur,
   mevcut kullanıcılar giriş yapamaz. `SECRET_KEY`'den farklı bir değer olmalı.
 - **`ALLOWED_ORIGINS` prod'da daraltılır.** Varsayılan `*` dev davranışıdır. Değer virgülle
