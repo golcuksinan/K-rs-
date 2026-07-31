@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, List, Tuple, Type
 
 from fastapi import HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Query as SAQuery, Session
 
 
@@ -43,10 +44,30 @@ def paginated(query: SAQuery, params: PageParams) -> dict:
 # ---------- Arama ----------
 
 def like_pattern(term: str) -> str:
-    """Kullanıcı girdisini `ilike` deseni için hazırlar: `%`/`_` joker olarak değil
-    literal olarak eşleşir. Kullanım: `.ilike(like_pattern(search), escape="\\\\")`."""
+    """Kullanıcı girdisini `like` deseni için hazırlar: `%`/`_` joker olarak değil
+    literal olarak eşleşir. Doğrudan çağrılmaz, `search_filter()` üzerinden kullanılır."""
     escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     return f"%{escaped}%"
+
+
+# Postgres `lower()` Türkçe'yi bilmez: `lower('I')` = 'i', 'ı' değil. Sonuç ters yönde ısırıyordu —
+# 'MİMARLIK' ILIKE '%mimarlik%' (ASCII) eşleşiyor ama '%mimarlık%' (doğru yazım) eşleşmiyordu,
+# yani kullanıcı adı doğru yazdıkça bulamıyordu. Çözüm: her iki tarafı da ASCII'ye katlamak.
+_TR_CHARS = "İIıŞşĞğÜüÖöÇç"
+_ASCII_CHARS = "iiissgguuoocc"
+_TR_TO_ASCII = str.maketrans(_TR_CHARS, _ASCII_CHARS)
+
+
+def tr_fold(term: str) -> str:
+    return term.translate(_TR_TO_ASCII).lower()
+
+
+def search_filter(column: Any, term: str) -> Any:
+    """`search` filtresi: kolon da girdi de ASCII'ye katlanır → "ışık"/"IŞIK"/"isik" aynı sonucu
+    verir. ⚠️ `func.lower(func.translate(...))` ifadesi kolon üzerindeki index'i kullanamaz;
+    aranan tablolar küçük olduğu için (en büyüğü ~12 bin satır) seq scan kabul edildi."""
+    folded_column = func.lower(func.translate(column, _TR_CHARS, _ASCII_CHARS))
+    return folded_column.like(like_pattern(tr_fold(term)), escape="\\")
 
 
 # ---------- Soft-delete doğrulaması ----------
