@@ -273,9 +273,4 @@ sayaçları). ⚠️ İkisi de **`Page[T]` zarfı kullanmaz** — liste değil, 
 
 ## 12. Dağıtım
 
-- API **tek worker** ile çalıştırılır.
-- Reverse proxy arkasında `TRUSTED_PROXY_IPS` proxy'nin IP'siyle set edilmeli, yoksa rate limit
-  tüm kullanıcılar için tek kovaya düşer.
-- `ALLOWED_ORIGINS` prod'da daraltılmalı; varsayılan `*` dev davranışıdır.
-- `docker-compose.yml` yerel geliştirme içindir (Postgres portunu host'a açar, kaynak ağacını
-  imajın üzerine mount eder) — prod'a kopyalanmaz.
+Sözleşme dışı; `docs/deployment.md` (yerel docker) ve `docs/deploy-plan.md` (prod).
