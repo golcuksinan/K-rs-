@@ -60,8 +60,8 @@ def tr_fold(term: str) -> str:
 
 def search_filter(column: Any, term: str) -> Any:
     """`search` filtresi: kolon da girdi de ASCII'ye katlanır → "ışık"/"IŞIK"/"isik" aynı sonucu
-    verir. ⚠️ `func.lower(func.translate(...))` ifadesi kolon üzerindeki index'i kullanamaz;
-    aranan tablolar küçük olduğu için (en büyüğü ~12 bin satır) seq scan kabul edildi."""
+    verir. ⚠️ Buradaki ifade değişirse `courses`/`departments` üzerindeki `*_trgm` ifade
+    index'leri eşleşmeyi bırakır ve sorgu sessizce seq scan'e döner."""
     folded_column = func.lower(func.translate(column, _TR_CHARS, _ASCII_CHARS))
     return folded_column.like(like_pattern(tr_fold(term)), escape="\\")
 

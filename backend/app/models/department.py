@@ -11,6 +11,12 @@ class Department(Base):
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
         ),
+        # İfade common.py:search_filter()'ınkiyle birebir aynı olmalı, yoksa kullanılmaz.
+        Index(
+            "ix_departments_name_trgm",
+            text("lower(translate(name, 'İIıŞşĞğÜüÖöÇç', 'iiissgguuoocc')) gin_trgm_ops"),
+            postgresql_using="gin",
+        ),
     )
 
     id = Column(Integer, primary_key=True)
