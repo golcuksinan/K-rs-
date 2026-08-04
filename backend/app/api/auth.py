@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 
 from app.api.common import get_active_or_400
@@ -20,7 +21,9 @@ from app.core.security import (
     create_access_token,
 )
 from app.core.config import settings
-from app.core.limiter import limiter
+from app.core.limiter import (
+    limiter, client_ip, auth_failures_exhausted, record_auth_failure,
+)
 from app.services.email_service import (
     send_verification_email, send_reset_email, send_already_registered_email,
 )
@@ -39,7 +42,7 @@ def cleanup_expired_verifications(db: Session) -> None:
 
 
 @router.post("/register", response_model=MessageResponse)
-@limiter.limit("5/minute")
+@limiter.limit(settings.RATE_LIMIT_AUTH, key_func=client_ip)
 def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)):
     cleanup_expired_verifications(db)
 
@@ -96,7 +99,7 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit(settings.RATE_LIMIT_AUTH, key_func=client_ip)
 def verify_otp_endpoint(request: Request, payload: VerifyOTPRequest, db: Session = Depends(get_db)):
     email_hash = hash_email(payload.email)
     entry = db.query(EmailVerification).filter(
@@ -149,9 +152,15 @@ def verify_otp_endpoint(request: Request, payload: VerifyOTPRequest, db: Session
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit(settings.RATE_LIMIT_AUTH, key_func=client_ip)
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
+    # E-posta düz saklanmadığı gibi sayaç anahtarı da hash'tir. Kontrol bcrypt'ten önce:
+    # tavana çarpmış saldırgana doğrulama maliyeti ödetilmez.
     email_hash = hash_email(payload.email)
+    exhausted = auth_failures_exhausted(request, email_hash)
+    if exhausted is not None:
+        raise RateLimitExceeded(exhausted)
+
     user = db.query(User).filter(User.email_hash == email_hash).first()
 
     # Sayaç yalnızca sayar: e-posta/IP tutulmaz. Üç dalın üçünde de tek increment var,
@@ -160,10 +169,12 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
         # Kullanıcı yokken de bcrypt maliyeti ödenir; yanıt her iki durumda da aynı.
         dummy_verify_password()
         increment(Event.AUTH_LOGIN_FAILED)
+        record_auth_failure(request, email_hash)
         raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı")
 
     if not verify_password(payload.password, user.hashed_password):
         increment(Event.AUTH_LOGIN_FAILED)
+        record_auth_failure(request, email_hash)
         raise HTTPException(status_code=401, detail="E-posta veya şifre hatalı")
 
     increment(Event.AUTH_LOGIN_SUCCEEDED)
@@ -172,7 +183,7 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-@limiter.limit("5/minute")
+@limiter.limit(settings.RATE_LIMIT_AUTH, key_func=client_ip)
 def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
     cleanup_expired_verifications(db) 
     
@@ -209,7 +220,7 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Sessio
 
 
 @router.post("/reset-password", response_model=MessageResponse)
-@limiter.limit("5/minute")
+@limiter.limit(settings.RATE_LIMIT_AUTH, key_func=client_ip)
 def reset_password(request: Request, payload: ResetPasswordRequest, db: Session = Depends(get_db)):
     email_hash = hash_email(payload.email)
     entry = db.query(EmailVerification).filter(

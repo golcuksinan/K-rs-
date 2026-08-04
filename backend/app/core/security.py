@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=10)
 
 # Kabul edilen e-posta domain'i -> o domain'in bağlı olduğu üniversitenin DB'deki adı.
 # Register hem e-postayı bu domain'lerle sınırlar hem de seçilen bölümün bu üniversiteye
