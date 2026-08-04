@@ -23,7 +23,7 @@ getDepartments()
 
 .then(res=>{
 
-setDepartments(res.data);
+setDepartments(res.data.items);
 
 });
 

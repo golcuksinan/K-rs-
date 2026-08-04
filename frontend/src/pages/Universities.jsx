@@ -26,7 +26,7 @@ getUniversities()
 
 .then(res=>{
 
-setUniversities(res.data);
+setUniversities(res.data.items);
 
 });
 

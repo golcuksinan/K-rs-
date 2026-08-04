@@ -23,7 +23,7 @@ getFaculties()
 
 .then(res=>{
 
-setFaculties(res.data);
+setFaculties(res.data.items);
 
 });
 

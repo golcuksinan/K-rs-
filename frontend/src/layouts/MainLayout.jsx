@@ -3,8 +3,6 @@ import { Outlet } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-import background from "../assets/background.jpg";
-
 
 export default function MainLayout(){
 
@@ -20,22 +18,6 @@ overflow-hidden
 "
 
 >
-
-
-<img
-
-src={background}
-
-className="
-absolute
-inset-0
-w-full
-h-full
-object-cover
-"
-
-/>
-
 
 
 <div

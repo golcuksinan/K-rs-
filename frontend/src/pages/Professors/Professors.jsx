@@ -24,7 +24,7 @@ getProfessors()
 
 .then(res=>{
 
-setProfessors(res.data);
+setProfessors(res.data.items);
 
 })
 

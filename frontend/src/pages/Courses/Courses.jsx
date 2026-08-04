@@ -25,7 +25,7 @@ getCourses()
 
 .then(res=>{
 
-setCourses(res.data);
+setCourses(res.data.items);
 
 });
 

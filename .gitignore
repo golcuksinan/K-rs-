@@ -233,7 +233,10 @@ backend/seeds/*.sqlite
 docs/PAÜ müh fak.html
 docs/paü bütün faks.html
 
-
+docs/deploy-plan.md
+docs/perf-plan.md
+perf/
+docker-compose.perf.yml
 
 #Vscode
 .vscode/
