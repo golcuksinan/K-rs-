@@ -47,7 +47,7 @@ class TestGetCourseProfessorDetail:
         body = resp.json()
         assert body["average_teaching_score"] is None
         assert body["review_count"] == 0
-        assert body["reviews"] == []
+        assert "reviews" not in body
 
     def test_averages_computed_only_from_approved_reviews(
         self, client, db_session, course_professor, student, second_student
@@ -61,28 +61,21 @@ class TestGetCourseProfessorDetail:
         assert body["average_teaching_score"] == 5
         assert body["review_count"] == 1
 
-    def test_public_user_sees_only_approved_reviews(
-        self, client, db_session, course_professor, student, second_student
-    ):
-        _make_review(db_session, student["user"].id, course_professor.id, "approved")
-        _make_review(db_session, second_student["user"].id, course_professor.id, "pending")
-
-        resp = client.get(f"/course-professors/{course_professor.id}")
-        assert resp.status_code == 200
-        assert len(resp.json()["reviews"]) == 1
-
-    def test_admin_sees_all_reviews_but_averages_stay_approved_only(
+    def test_reviews_are_not_embedded(
         self, client, db_session, admin_headers, course_professor, student, second_student
     ):
+        # Yorum listesi sayfalı uçtan alınır; detay yanıtı review sayısından bağımsız sabit
+        # kalmalı, admin için de.
         _make_review(db_session, student["user"].id, course_professor.id, "approved", teaching=4)
         _make_review(db_session, second_student["user"].id, course_professor.id, "pending", teaching=1)
 
-        resp = client.get(f"/course-professors/{course_professor.id}", headers=admin_headers)
-        assert resp.status_code == 200
-        body = resp.json()
-        assert len(body["reviews"]) == 2
-        assert body["average_teaching_score"] == 4
-        assert body["review_count"] == 1
+        for headers in ({}, admin_headers):
+            resp = client.get(f"/course-professors/{course_professor.id}", headers=headers)
+            assert resp.status_code == 200
+            body = resp.json()
+            assert "reviews" not in body
+            assert body["average_teaching_score"] == 4
+            assert body["review_count"] == 1
 
     def test_response_includes_course_and_professor_names(self, client, course_professor, valid_course, valid_professor):
         resp = client.get(f"/course-professors/{course_professor.id}")

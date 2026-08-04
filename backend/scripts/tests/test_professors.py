@@ -29,7 +29,7 @@ class TestGetProfessorDetail:
         assert resp.status_code == 200
         body = resp.json()
         assert body["courses"] == []
-        assert body["reviews"] == []
+        assert "reviews" not in body
 
     def test_summarizes_multiple_course_professors(
         self, client, db_session, valid_professor, valid_department, student, make_course
@@ -56,25 +56,16 @@ class TestGetProfessorDetail:
         course_b_summary = next(c for c in body["courses"] if c["id"] == cp_b.id)
         assert course_b_summary["review_count"] == 0
 
-    def test_public_sees_only_approved_across_all_courses(
-        self, client, db_session, course_professor, valid_professor, student, second_student
-    ):
-        _make_review(db_session, student["user"].id, course_professor.id, "approved")
-        _make_review(db_session, second_student["user"].id, course_professor.id, "rejected")
-
-        resp = client.get(f"/professors/{valid_professor.id}")
-        assert resp.status_code == 200
-        assert len(resp.json()["reviews"]) == 1
-
-    def test_admin_sees_all_reviews_across_all_courses(
+    def test_reviews_are_not_embedded(
         self, client, db_session, admin_headers, course_professor, valid_professor, student, second_student
     ):
         _make_review(db_session, student["user"].id, course_professor.id, "approved")
         _make_review(db_session, second_student["user"].id, course_professor.id, "rejected")
 
-        resp = client.get(f"/professors/{valid_professor.id}", headers=admin_headers)
-        assert resp.status_code == 200
-        assert len(resp.json()["reviews"]) == 2
+        for headers in ({}, admin_headers):
+            resp = client.get(f"/professors/{valid_professor.id}", headers=headers)
+            assert resp.status_code == 200
+            assert "reviews" not in resp.json()
 
 
 class TestListProfessors:

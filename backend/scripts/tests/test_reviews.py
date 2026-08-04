@@ -243,6 +243,40 @@ class TestListReviews:
         assert resp.status_code == 200
         assert resp.json()["total"] == 1
 
+    def test_filter_by_professor_id(
+        self, client, student_headers, course_professor, valid_professor, fake_ai_service
+    ):
+        client.post("/reviews", json=_review_payload(course_professor.id, comment=AI_TEST_APPROVE), headers=student_headers)
+
+        resp = client.get("/reviews", params={"professor_id": valid_professor.id})
+        assert resp.status_code == 200
+        assert resp.json()["total"] == 1
+
+        assert client.get("/reviews", params={"professor_id": 999999}).json()["total"] == 0
+
+    def test_status_filter_requires_admin(self, client, student_headers):
+        assert client.get("/reviews", params={"status": "rejected"}).status_code == 403
+        resp = client.get("/reviews", params={"status": "rejected"}, headers=student_headers)
+        assert resp.status_code == 403
+
+    def test_admin_can_list_rejected(
+        self, client, admin_headers, student_headers, course_professor, fake_ai_service
+    ):
+        client.post("/reviews", json=_review_payload(course_professor.id, comment=AI_TEST_REJECT), headers=student_headers)
+
+        resp = client.get(
+            "/reviews",
+            params={"course_professor_id": course_professor.id, "status": "rejected"},
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["total"] == 1
+        assert resp.json()["items"][0]["status"] == "rejected"
+
+    def test_invalid_status_value_rejected(self, client, admin_headers):
+        resp = client.get("/reviews", params={"status": "hepsi"}, headers=admin_headers)
+        assert resp.status_code == 422
+
 
 class TestListPendingReviews:
     def test_requires_admin(self, client, student_headers):

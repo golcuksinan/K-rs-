@@ -298,8 +298,7 @@ class TestAnonimlik:
 
         resp = client.get(f"/course-professors/{course_professor.id}")
         assert resp.status_code == 200
-        for review in resp.json()["reviews"]:
-            self._assert_clean(review)
+        self._assert_clean(resp.json())
 
     def test_professor_detail_hides_authors(
         self, client, student_headers, course_professor, valid_professor, fake_ai_service

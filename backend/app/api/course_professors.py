@@ -6,12 +6,11 @@ from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
 from app.api.common import PageParams, get_active_or_400, page, paginate, pagination
-from app.api.deps import get_current_admin_user, get_optional_current_user
+from app.api.deps import get_current_admin_user
 from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.course_professor import CourseProfessor
-from app.models.enums import UserRole
 from app.models.professor import Professor
 from app.models.user import User
 from app.schemas.common import Page
@@ -21,7 +20,7 @@ from app.schemas.course_professor import (
     CourseProfessorListItem,
     CourseProfessorResponse,
 )
-from app.services.ratings import APPROVED, EMPTY_RATING, rating_by_course_professor
+from app.services.ratings import EMPTY_RATING, rating_by_course_professor
 
 router = APIRouter(prefix="/course-professors", tags=["course-professors"])
 
@@ -72,14 +71,12 @@ def create_course_professor(
 def get_course_professor_detail(
     course_professor_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     cp = (
         db.query(CourseProfessor)
         .options(
             joinedload(CourseProfessor.course),
             joinedload(CourseProfessor.professor),
-            joinedload(CourseProfessor.reviews),
         )
         .filter(CourseProfessor.id == course_professor_id)
         .first()
@@ -87,12 +84,7 @@ def get_course_professor_detail(
     if not cp:
         raise HTTPException(status_code=404, detail="Ders/hoca eşleşmesi bulunamadı")
 
-    is_admin = current_user is not None and current_user.role == UserRole.admin
-
-    # Ortalamalar her zaman sadece approved'dan (ratings servisi garanti eder);
-    # review listesi admin'e hepsi, public'e sadece approved.
     rating = rating_by_course_professor(db, [cp.id]).get(cp.id, EMPTY_RATING)
-    reviews_to_show = cp.reviews if is_admin else [r for r in cp.reviews if r.status == APPROVED]
 
     return CourseProfessorDetail(
         id=cp.id,
@@ -104,7 +96,6 @@ def get_course_professor_detail(
         average_difficulty_score=rating.average_difficulty_score,
         average_fairness_score=rating.average_fairness_score,
         review_count=rating.review_count,
-        reviews=reviews_to_show,
     )
 
 @router.get("", response_model=Page[CourseProfessorListItem])

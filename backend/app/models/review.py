@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, UniqueConstraint, Index, func
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -6,6 +6,7 @@ class Review(Base):
     __tablename__ = "reviews"
     __table_args__ = (
         UniqueConstraint("user_id", "course_professor_id", name="uq_user_course_professor_review"),
+        Index("ix_reviews_cp_status", "course_professor_id", "status"),
     )
 
     id = Column(Integer, primary_key=True)

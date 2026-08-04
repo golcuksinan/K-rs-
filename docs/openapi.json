@@ -262,6 +262,11 @@
         ],
         "summary": "List Reviews",
         "operationId": "list_reviews_reviews_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "course_professor_id",
@@ -277,6 +282,43 @@
                 }
               ],
               "title": "Course Professor Id"
+            }
+          },
+          {
+            "name": "professor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Professor Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "approved",
+                    "pending",
+                    "rejected"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           },
           {
@@ -1057,11 +1099,6 @@
         ],
         "summary": "Get Course Professor Detail",
         "operationId": "get_course_professor_detail_course_professors__course_professor_id__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "course_professor_id",
@@ -1182,11 +1219,6 @@
         ],
         "summary": "Get Professor Detail",
         "operationId": "get_professor_detail_professors__professor_id__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "professor_id",
@@ -2438,13 +2470,6 @@
           "review_count": {
             "type": "integer",
             "title": "Review Count"
-          },
-          "reviews": {
-            "items": {
-              "$ref": "#/components/schemas/ReviewResponse"
-            },
-            "type": "array",
-            "title": "Reviews"
           }
         },
         "type": "object",
@@ -2457,8 +2482,7 @@
           "average_teaching_score",
           "average_difficulty_score",
           "average_fairness_score",
-          "review_count",
-          "reviews"
+          "review_count"
         ],
         "title": "CourseProfessorDetail"
       },
@@ -3485,21 +3509,13 @@
             },
             "type": "array",
             "title": "Courses"
-          },
-          "reviews": {
-            "items": {
-              "$ref": "#/components/schemas/ReviewResponse"
-            },
-            "type": "array",
-            "title": "Reviews"
           }
         },
         "type": "object",
         "required": [
           "id",
           "full_name",
-          "courses",
-          "reviews"
+          "courses"
         ],
         "title": "ProfessorDetail"
       },

@@ -1,8 +1,6 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
-
-from app.schemas.review import ReviewResponse
 
 
 class CourseProfessorCreate(BaseModel):
@@ -31,7 +29,6 @@ class CourseProfessorDetail(BaseModel):
     average_difficulty_score: Optional[float]
     average_fairness_score: Optional[float]
     review_count: int
-    reviews: List[ReviewResponse]
 
     class Config:
         from_attributes = True

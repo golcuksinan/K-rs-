@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy import or_
@@ -11,10 +11,11 @@ from app.models.user import User
 from app.models.review import Review
 from app.models.report import Report
 from app.models.course_professor import CourseProfessor
+from app.models.enums import UserRole
 from app.schemas.common import Page
 from app.schemas.review import ReviewCreate, ReviewResponse, ReviewStatusUpdate, ReviewFullResponse, ReviewUpdate
 from app.api.common import PageParams, get_active_or_400, pagination, paginated
-from app.api.deps import get_current_user, get_current_admin_user
+from app.api.deps import get_current_user, get_current_admin_user, get_optional_current_user
 from app.services.ai_service import moderate_review
 from app.services.metrics import Event, increment
 
@@ -154,13 +155,23 @@ def update_my_review(
 @router.get("", response_model=Page[ReviewResponse])
 def list_reviews(
     course_professor_id: Optional[int] = None,
+    professor_id: Optional[int] = None,
+    status: Optional[Literal["approved", "pending", "rejected"]] = None,
     params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
-    query = db.query(Review).filter(Review.status == "approved")
+    if status is not None and (current_user is None or current_user.role != UserRole.admin):
+        raise HTTPException(status_code=403, detail="status filtresi yalnızca adminler içindir")
+
+    query = db.query(Review).filter(Review.status == (status or "approved"))
 
     if course_professor_id is not None:
         query = query.filter(Review.course_professor_id == course_professor_id)
+    if professor_id is not None:
+        query = query.join(
+            CourseProfessor, CourseProfessor.id == Review.course_professor_id
+        ).filter(CourseProfessor.professor_id == professor_id)
 
     return paginated(query.order_by(Review.created_at.desc()), params)
 

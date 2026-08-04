@@ -2,8 +2,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from app.schemas.review import ReviewResponse
-
 
 class ProfessorListItem(BaseModel):
     id: int
@@ -37,7 +35,6 @@ class ProfessorDetail(BaseModel):
     id: int
     full_name: str
     courses: List[CourseProfessorSummary]
-    reviews: List[ReviewResponse]
 
     class Config:
         from_attributes = True

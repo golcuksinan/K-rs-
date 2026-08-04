@@ -61,8 +61,8 @@ JSON dizisi dönen **her top-level uç** şu zarfı döner:
 ```
 
 - `limit`: 1..100, varsayılan **50**. `offset`: ≥ 0. Aralık dışı değer → 422.
-- **İstisna yok.** Buna karşılık detay yanıtlarının **içindeki** koleksiyonlar
-  (`CourseProfessorDetail.reviews`, `ProfessorDetail.courses`) düz dizidir, sayfalanmaz.
+- **İstisna yok.** Buna karşılık detay yanıtlarının **içindeki** koleksiyon
+  (`ProfessorDetail.courses`) düz dizidir, sayfalanmaz — hoca başına ders sayısı sınırlıdır.
 - ⚠️ `GET /departments` gruplama dalında `total` = **grup sayısı**, eşleşen bölüm satırı değil.
 
 ## 4. Endpoint tablosu
@@ -73,16 +73,13 @@ Yetki üç değerden biri: `public` · `auth` (Bearer zorunlu) · `admin` (rol=a
 |---|---|---|---|
 | `auth` | 5 ucun hepsi | — | — |
 | `universities` / `faculties` / `departments` / `courses` | `GET` (liste) | — | `POST`, `PATCH /{id}`, `DELETE /{id}` (soft-delete) |
-| `professors` | `GET` (liste), `GET /{id}`* | — | — |
-| `course-professors` | `GET` (liste), `GET /{id}`* | — | `POST` |
-| `reviews` | `GET /reviews` | `POST`, `GET /me`, `PATCH /{id}`, `DELETE /{id}` | `GET /pending`, `PATCH /{id}/status`, `PATCH /{id}/edit-status` |
+| `professors` | `GET` (liste), `GET /{id}` | — | — |
+| `course-professors` | `GET` (liste), `GET /{id}` | — | `POST` |
+| `reviews` | `GET /reviews` | `POST`, `GET /me`, `PATCH /{id}`, `DELETE /{id}` | `GET /reviews?status=`, `GET /pending`, `PATCH /{id}/status`, `PATCH /{id}/edit-status` |
 | `reports` | — | `POST`, `GET /me` | `GET /pending`, `PATCH /{id}/status` |
 | `users` | — | `GET /me` | — |
 | `admin/stats` | — | — | `GET /admin/stats`, `GET /admin/stats/events` |
 | — | `GET /health` | — | — |
-
-\* **Opsiyonel auth:** token varsa ve admin ise tüm review'lar görünür; token yoksa/geçersizse
-hata fırlatılmaz, sadece `approved` olanlar döner.
 
 Zorunlu filtre kuralları:
 
@@ -138,6 +135,19 @@ Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek 
 - `pending_*` ve `has_pending_edit` alanları sadece `GET /reviews/me` ve `GET /reviews/pending`
   yanıtlarında (`ReviewFullResponse`) döner; public `GET /reviews`'ta yoktur.
 
+**Yorum okumanın tek yolu `GET /reviews`'tur.** Detay uçları (`GET /course-professors/{id}`,
+`GET /professors/{id}`) yorum listesi **döndürmez**, yalnızca ortalamaları ve `review_count`'u
+verir — yanıt boyutu yorum sayısından bağımsızdır. Bir ders/hoca sayfası iki istek yapar:
+
+- `?course_professor_id=` — tek ders-hoca eşleşmesinin yorumları.
+- `?professor_id=` — hocanın **tüm derslerindeki** yorumları, tek listede.
+- İkisi de verilirse ikisi birden uygulanır (AND).
+
+Varsayılan olarak yalnızca `approved` döner. `?status=approved|pending|rejected` **admin
+token'ı ister**: eksik/yetkisiz token ile **403**, tanımsız değer **422**. Bu, `rejected`
+yorumları listeleyebilen tek yoldur (`GET /reviews/pending` yalnızca `pending` + bekleyen
+edit'leri verir).
+
 ⚠️ `DELETE /reviews/{id}` (204) o review'a ait **Report satırlarını da siler**.
 
 **Report tarafı:** `POST /reports` (`review_id` + `reason`, 3..500 karakter). Aynı review'a ikinci
@@ -171,18 +181,29 @@ Frontend tek bir `parseError(response)` yardımcısı yazmalı:
 |---|---|---|
 | 4xx (`HTTPException`) | `{"detail": "Türkçe mesaj"}` | string |
 | 422 (validation) | `{"detail": [{"loc": …, "msg": …, "type": …}]}` | **dizi** — doğrudan basılırsa `[object Object]` |
-| 429 (rate limit) | `{"error": "Rate limit exceeded: 5 per 1 minute"}` | anahtar **`detail` değil `error`** (slowapi'nin kendi handler'ı) |
+| 429 (rate limit) | `{"error": "Rate limit exceeded: 20 per 1 minute"}` | anahtar **`detail` değil `error`** (slowapi'nin kendi handler'ı) |
 
 Not: 422 elle de fırlatılabiliyor (`GET /departments`, `GET /courses` zorunlu filtre kuralları) —
 o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir; tip kontrolü şart.
 
 ## 8. Rate limitler
 
-- Global **`20/second` + `100/minute`** (ikisi birden, IP başına). ⚠️ Saniyelik pencere aynı
-  zamanda **paralel istek sayısına tavandır**: aynı anda 20'den fazla çağrı açan bir ekran
-  fazlasından 429 alır. React StrictMode dev'de effect'leri iki kez tetiklediği için bu sayı
-  beklenenin iki katı olabilir.
-- 5 auth ucunun her biri ayrıca **`5/minute`** (saniyelik pencere bunlara uygulanmaz).
+Değerler `.env`'den gelir (`RATE_LIMIT_*`), aşağıdakiler varsayılanlardır. **Kovalar uç
+başınadır**: bir uçta 429 almak diğerlerini etkilemez.
+
+- Global **`20/second` + `600/minute`** (ikisi birden). ⚠️ Saniyelik pencere aynı zamanda
+  **paralel istek sayısına tavandır**: aynı anda 20'den fazla çağrı açan bir ekran fazlasından
+  429 alır. React StrictMode dev'de effect'leri iki kez tetiklediği için bu sayı beklenenin
+  iki katı olabilir.
+- **Kova anahtarı:** `Authorization` başlığında geçerli bir token varsa **kullanıcı başına**,
+  yoksa IP başına. Yani giriş yapmış kullanıcı NAT'ın arkasındaki kalabalıkla kova paylaşmaz.
+  Geçersiz/süresi dolmuş token IP kovasına düşer.
+- 5 auth ucunun her biri ayrıca **`20/minute`**, ve bunlar **her zaman IP başına** anahtarlanır
+  (kimlik doğrulayan ucu kimlikle limitlemek anlamsız olurdu). ⚠️ Global limitler bunların
+  **yerine geçmez, üstüne eklenir** — auth uçlarında saniyelik pencere de geçerlidir.
+- `POST /auth/login` ayrıca **başarısız denemeleri** sayar: IP başına `10/minute`, hedef
+  e-posta başına `5/minute`. Başarılı giriş bu kovaları tüketmez. Tavana çarpınca doğru şifre
+  de 429 alır. Gövde hangi eksene takıldığını söylemez.
 - `GET /health` **muaf**.
 - In-memory (Redis yok) → multi-worker'da limit worker sayısı kadar katlanır; süreç yeniden
   başlayınca sayaç sıfırlanır.
@@ -227,7 +248,7 @@ o durumda `detail` **string**'tir. Yani 422 gövdesi iki şekilden biri olabilir
 - Üniversitelerin `city` alanı gerçek veri (YÖK Atlas). KKTC/yurtdışı üniversitelerde biçim
   `"Lefkoşa (KKTC)"` / `"Bakü (Azerbaycan)"` — düz il adı varsayılmamalı.
 - Ortalamalar **her zaman** yalnızca `approved` review'lardan hesaplanır (admin görüntülemesinde
-  bile); review **listesi** admin'e hepsini gösterir.
+  bile); admin diğer statüleri `GET /reviews?status=` ile ayrıca listeler.
 
 ## 10. ⚠️ Düzeltilmesi Gerekenler
 
