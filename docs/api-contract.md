@@ -291,6 +291,8 @@ sayaçları). ⚠️ İkisi de **`Page[T]` zarfı kullanmaz** — liste değil, 
   büyüyebilir; istemci `events` dizisini okumalı, sabit anahtar kümesi varsaymamalı.
 - ⚠️ `moderation.failed` (HF'e ulaşılamadı) `moderation.pending`'in **alt kümesidir**: karar
   verilemeyen yorum pending'e düşer, iki sayaç birden artar.
+- `mail.failed` `mail.*_sent` sayaçlarının alt kümesi **değildir**: gönderilemeyen mail
+  "gönderildi" sayılmaz, yalnızca `mail.failed` artar.
 
 ## 12. Dağıtım
 

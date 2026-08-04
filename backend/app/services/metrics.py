@@ -36,6 +36,7 @@ class Event(str, enum.Enum):
     MAIL_VERIFICATION_SENT = "mail.verification_sent"
     MAIL_RESET_SENT = "mail.reset_sent"
     MAIL_ALREADY_REGISTERED_SENT = "mail.already_registered_sent"
+    MAIL_FAILED = "mail.failed"
 
     REVIEW_CREATED = "review.created"
     REVIEW_EDIT_REQUESTED = "review.edit_requested"

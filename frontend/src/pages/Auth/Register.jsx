@@ -75,18 +75,59 @@ space-y-5
 <input
 className="w-full border p-3"
 placeholder="Ad Soyad"
+
+onChange={(e)=>
+
+setForm({
+
+...form,
+
+name:e.target.value
+
+})
+
+}
+
 />
 
 
 <input
 className="w-full border p-3"
 placeholder="Email"
+
+onChange={(e)=>
+
+setForm({
+
+...form,
+
+email:e.target.value
+
+})
+
+}
+
 />
 
 
 <input
+type="password"
+
 className="w-full border p-3"
 placeholder="Şifre"
+
+onChange={(e)=>
+
+setForm({
+
+...form,
+
+password:e.target.value
+
+})
+
+}
+
 />
 
 

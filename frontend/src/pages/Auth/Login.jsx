@@ -10,7 +10,7 @@ loginUser
 
 import {
 AuthContext
-} from "../../context/AuthContext";
+} from "../../context/auth-context";
 
 
 export default function Login(){

@@ -1,5 +1,4 @@
 import {
-createContext,
 useEffect,
 useState
 } from "react";
@@ -10,7 +9,9 @@ getCurrentUser
 } from "../api/users";
 
 
-export const AuthContext=createContext();
+import {
+AuthContext
+} from "./auth-context";
 
 
 
@@ -19,7 +20,13 @@ export default function AuthProvider({children}){
 
 const [user,setUser]=useState(null);
 
-const [loading,setLoading]=useState(true);
+// Token yoksa beklenecek bir istek de yok: ilk render'da doğrudan false başlar,
+// effect gövdesinde setState çağrılmaz.
+const [loading,setLoading]=useState(()=>
+
+Boolean(localStorage.getItem("token"))
+
+);
 
 
 
@@ -29,7 +36,11 @@ useEffect(()=>{
 const token=localStorage.getItem("token");
 
 
-if(token){
+if(!token){
+
+return;
+
+}
 
 
 getCurrentUser()
@@ -51,15 +62,6 @@ localStorage.removeItem("token");
 setLoading(false);
 
 });
-
-
-}
-
-else{
-
-setLoading(false);
-
-}
 
 
 
