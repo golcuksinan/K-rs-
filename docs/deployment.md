@@ -7,9 +7,9 @@ kurulum **prod yolu değildir** — hedef Heroku + Cloudflare, `docs/deploy-plan
 
 | Dosya | İşi |
 |---|---|
-| `backend/Dockerfile` | API imajı (python:3.12-slim, non-root `kursu` kullanıcısı) |
+| `backend/Dockerfile` | API imajı (python:3.14-slim, non-root `kursu` kullanıcısı) |
 | `backend/docker-entrypoint.sh` | `alembic upgrade head` → uvicorn |
-| `docker-compose.yml` | `db` (postgres:16-alpine, named volume) + `api` |
+| `docker-compose.yml` | `db` (postgres:18-alpine, named volume) + `api` |
 | `.env.example` | postgres kullanıcı/parola/db ve `API_PORT` (kök dizin) |
 | `backend/.env.example` | uygulama ayarları; compose bunu `env_file` ile yükler |
 

@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: kursu_db
     restart: unless-stopped
     environment:
@@ -11,7 +11,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Postgres 18+ imajında PGDATA alt dizine taşındı; mount üst dizine yapılır.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kursu} -d ${POSTGRES_DB:-kursu_db}"]
       interval: 5s
