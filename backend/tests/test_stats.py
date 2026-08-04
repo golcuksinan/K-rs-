@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 
 from app.services import metrics
-from conftest import AI_TEST_APPROVE, DEFAULT_PASSWORD
+from conftest import AI_TEST_APPROVE, DEFAULT_PASSWORD, review_payload
 
 
 def _stats(client, headers):
@@ -45,16 +45,6 @@ def _counter_count(event_value):
         ).scalar()
     finally:
         session.close()
-
-
-def _review_payload(course_professor_id, comment=AI_TEST_APPROVE):
-    return {
-        "course_professor_id": course_professor_id,
-        "teaching_score": 4,
-        "difficulty_score": 3,
-        "fairness_score": 5,
-        "comment": comment,
-    }
 
 
 class TestPlatformStats:
@@ -150,7 +140,7 @@ class TestPlatformStats:
     ):
         before = _stats(client, admin_headers)["moderation"]
         created = client.post(
-            "/reviews", json=_review_payload(course_professor.id, comment="normal yorum"),
+            "/reviews", json=review_payload(course_professor.id, comment="normal yorum"),
             headers=student_headers,
         )
         assert created.status_code == 201, created.text
@@ -163,7 +153,7 @@ class TestPlatformStats:
         self, client, admin_headers, student_headers, course_professor, fake_ai_service
     ):
         created = client.post(
-            "/reviews", json=_review_payload(course_professor.id), headers=student_headers
+            "/reviews", json=review_payload(course_professor.id, AI_TEST_APPROVE), headers=student_headers
         )
         review_id = created.json()["id"]
         client.patch(
@@ -186,7 +176,7 @@ class TestPlatformStats:
         course_professor, fake_ai_service,
     ):
         created = client.post(
-            "/reviews", json=_review_payload(course_professor.id), headers=student_headers
+            "/reviews", json=review_payload(course_professor.id, AI_TEST_APPROVE), headers=student_headers
         )
         review_id = created.json()["id"]
 
@@ -286,7 +276,7 @@ class TestEventStats:
         self, client, admin_headers, student_headers, course_professor, fake_ai_service
     ):
         before = _event_totals(client, admin_headers)
-        client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        client.post("/reviews", json=review_payload(course_professor.id, AI_TEST_APPROVE), headers=student_headers)
         after = _event_totals(client, admin_headers)
 
         assert after["review.created"] == before["review.created"] + 1
@@ -297,7 +287,7 @@ class TestEventStats:
         self, client, admin_headers, student_headers, course_professor, fake_ai_service
     ):
         created = client.post(
-            "/reviews", json=_review_payload(course_professor.id), headers=student_headers
+            "/reviews", json=review_payload(course_professor.id, AI_TEST_APPROVE), headers=student_headers
         )
         review_id = created.json()["id"]
 
@@ -337,7 +327,7 @@ class TestSayacDayaniklilik:
 
         monkeypatch.setattr(metrics, "SessionLocal", _broken_session)
         resp = client.post(
-            "/reviews", json=_review_payload(course_professor.id), headers=student_headers
+            "/reviews", json=review_payload(course_professor.id, AI_TEST_APPROVE), headers=student_headers
         )
         assert resp.status_code == 201, resp.text
 

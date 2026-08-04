@@ -11,7 +11,6 @@ __pycache__/
 
 # Scripts
 backend/scripts/*
-!backend/scripts/tests/
 
 # Seed snapshot'ı: veri dosyası git'te tutulmuyor (disk + Drive), backend/seeds/ script'leri takipte
 backend/seeds/*.sqlite
@@ -20,10 +19,6 @@ backend/seeds/*.sqlite
 .pau_cache/
 .pau_state.json
 .pau_state.json.bak
-
-# PAÜ EBS katalog snapshot'ları — dokümantasyon değil bot girdisi (docs/database-schema.html etkilenmez)
-docs/PAÜ müh fak.html
-docs/paü bütün faks.html
 
 docs/deploy-plan.md
 docs/perf-plan.md

@@ -225,7 +225,7 @@ class TestLimitsFromEnv:
         )
         result = subprocess.run(
             [sys.executable, "-c", script],
-            cwd=pathlib.Path(__file__).resolve().parents[2],
+            cwd=pathlib.Path(__file__).resolve().parents[1],
             env={**os.environ, **env},
             capture_output=True,
             text=True,

@@ -22,9 +22,9 @@ Gereksinimler: pytest, .env dosyasında geçerli bir DATABASE_URL (migrate edilm
 bu .env ile ayakta OLMASINA gerek yok (testler uygulamayı ayrı process olarak başlatmaz,
 doğrudan TestClient ile in-process çalıştırır) ama config aynı .env'den okunur.
 
-Çalıştırma (dizin backend/ olmalı — app/core/config.py .env'i relative arar, scripts/ içinden
+Çalıştırma (dizin backend/ olmalı — app/core/config.py .env'i relative arar, başka dizinden
 çalıştırılırsa DATABASE_URL/SECRET_KEY/EMAIL_PEPPER_KEY "Field required" verir):
-    cd backend && ../.venv/bin/python -m pytest scripts/tests -v
+    cd backend && ../.venv/bin/python -m pytest tests -v
 """
 import os
 import sys
@@ -37,7 +37,7 @@ from sqlalchemy import event
 from sqlalchemy.orm import sessionmaker
 
 # backend/ klasörünü sys.path'e ekle (main.py ve app/ paketi burada yaşıyor)
-BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
@@ -298,6 +298,18 @@ def register_payload(department_id: int, **overrides) -> dict:
         "password": DEFAULT_PASSWORD,
         "department_id": department_id,
         "enrollment_year": date.today().year,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def review_payload(course_professor_id: int, comment: str = "normal bir yorum", **overrides) -> dict:
+    payload = {
+        "course_professor_id": course_professor_id,
+        "teaching_score": 4,
+        "difficulty_score": 3,
+        "fairness_score": 5,
+        "comment": comment,
     }
     payload.update(overrides)
     return payload

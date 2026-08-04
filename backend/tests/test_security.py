@@ -11,11 +11,13 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from jose import jwt
+from starlette.requests import Request
 
 from app.core.config import settings
+from app.core.limiter import client_ip, from_cloudflare
 from app.models.review import Review
 from app.models.user import User
-from conftest import AI_TEST_APPROVE, DEFAULT_PASSWORD, register_payload
+from conftest import AI_TEST_APPROVE, DEFAULT_PASSWORD, register_payload, review_payload
 
 
 def _token(user_id, *, secret=None, lifetime=timedelta(minutes=30), **extra_claims):
@@ -26,18 +28,6 @@ def _token(user_id, *, secret=None, lifetime=timedelta(minutes=30), **extra_clai
 
 def _auth(token):
     return {"Authorization": f"Bearer {token}"}
-
-
-def _review_payload(course_professor_id, **overrides):
-    payload = {
-        "course_professor_id": course_professor_id,
-        "teaching_score": 4,
-        "difficulty_score": 3,
-        "fairness_score": 5,
-        "comment": "normal bir yorum",
-    }
-    payload.update(overrides)
-    return payload
 
 
 # Var olmayan id'ler bilinçli: yetki kontrolü dependency'de, handler gövdesinden önce
@@ -113,7 +103,7 @@ class TestIDOR:
     def test_cannot_edit_another_users_review(
         self, client, student_headers, second_student_headers, course_professor, fake_ai_service
     ):
-        created = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        created = client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
         review_id = created.json()["id"]
 
         resp = client.patch(
@@ -126,7 +116,7 @@ class TestIDOR:
     def test_cannot_delete_another_users_review(
         self, client, db_session, student_headers, second_student_headers, course_professor, fake_ai_service
     ):
-        created = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        created = client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
         review_id = created.json()["id"]
 
         resp = client.delete(f"/reviews/{review_id}", headers=second_student_headers)
@@ -137,7 +127,7 @@ class TestIDOR:
         self, client, student, second_student, student_headers, second_student_headers, course_professor,
         fake_ai_service,
     ):
-        client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
 
         resp = client.get("/reviews/me", headers=second_student_headers)
         assert resp.status_code == 200
@@ -180,7 +170,7 @@ class TestMassAssignment:
     ):
         resp = client.post(
             "/reviews",
-            json=_review_payload(
+            json=review_payload(
                 course_professor.id,
                 status="approved",
                 user_id=second_student["user"].id,
@@ -199,7 +189,7 @@ class TestMassAssignment:
     def test_review_update_ignores_status_field(
         self, client, db_session, student_headers, course_professor, fake_ai_service
     ):
-        created = client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        created = client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
         review_id = created.json()["id"]
 
         # comment boş bırakılamaz: `analyze_review_with_hf` boş metni moderasyona sokmadan
@@ -277,7 +267,7 @@ class TestAnonimlik:
     ):
         client.post(
             "/reviews",
-            json=_review_payload(course_professor.id, comment=AI_TEST_APPROVE),
+            json=review_payload(course_professor.id, comment=AI_TEST_APPROVE),
             headers=student_headers,
         )
 
@@ -292,7 +282,7 @@ class TestAnonimlik:
     ):
         client.post(
             "/reviews",
-            json=_review_payload(course_professor.id, comment=AI_TEST_APPROVE),
+            json=review_payload(course_professor.id, comment=AI_TEST_APPROVE),
             headers=student_headers,
         )
 
@@ -305,7 +295,7 @@ class TestAnonimlik:
     ):
         client.post(
             "/reviews",
-            json=_review_payload(course_professor.id, comment=AI_TEST_APPROVE),
+            json=review_payload(course_professor.id, comment=AI_TEST_APPROVE),
             headers=student_headers,
         )
 
@@ -322,7 +312,7 @@ class TestAnonimlik:
     def test_admin_view_of_pending_reviews_hides_author(
         self, client, student_headers, admin_headers, course_professor, fake_ai_service
     ):
-        client.post("/reviews", json=_review_payload(course_professor.id), headers=student_headers)
+        client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
 
         resp = client.get(f"/reviews/pending?course_professor_id={course_professor.id}", headers=admin_headers)
         assert resp.status_code == 200
@@ -345,3 +335,54 @@ class TestLoginEnumeration:
 
         assert unknown.status_code == wrong_password.status_code == 401
         assert unknown.json() == wrong_password.json()
+
+
+ORIGIN_SECRET = "gizli-deger"
+
+
+@pytest.fixture
+def locked(monkeypatch):
+    monkeypatch.setattr(settings, "CF_ORIGIN_SECRET", ORIGIN_SECRET)
+
+
+def _raw_request(headers: dict, host: str = "10.0.0.1") -> Request:
+    raw = [(k.encode("latin-1"), v.encode("latin-1")) for k, v in headers.items()]
+    return Request({"type": "http", "headers": raw, "client": (host, 1234)})
+
+
+class TestOriginKilidi:
+    def test_kilit_kapaliyken_istek_gecer(self, client):
+        assert client.get("/universities").status_code == 200
+
+    def test_dogru_gizli_deger_gecer(self, client, locked):
+        resp = client.get("/universities", headers={"x-origin-secret": ORIGIN_SECRET})
+        assert resp.status_code == 200
+
+    def test_gizli_deger_yoksa_reddedilir(self, client, locked):
+        resp = client.get("/universities")
+        assert resp.status_code == 403
+        assert resp.json()["detail"] == "Erişim reddedildi"
+
+    def test_yanlis_gizli_deger_reddedilir(self, client, locked):
+        resp = client.get("/universities", headers={"x-origin-secret": ORIGIN_SECRET + "x"})
+        assert resp.status_code == 403
+
+    def test_ascii_disi_baslik_patlamaz(self, locked):
+        # Ham 0xFF baytı latin-1 ile çözülür; str karşılaştırması burada TypeError atıp 500 verirdi.
+        assert from_cloudflare(_raw_request({"x-origin-secret": "\xff"})) is False
+
+    def test_health_kilitten_muaf(self, client, locked):
+        assert client.get("/health").status_code == 200
+
+    def test_cf_connecting_ip_yalnizca_gizli_deger_dogruyken_okunur(self, locked):
+        headers = {"x-origin-secret": ORIGIN_SECRET, "cf-connecting-ip": "1.2.3.4"}
+        assert client_ip(_raw_request(headers)) == "1.2.3.4"
+
+        headers["x-origin-secret"] = "yanlis"
+        assert client_ip(_raw_request(headers)) == "10.0.0.1"
+
+    def test_kilit_kapaliyken_cf_baslikligina_guvenilmez(self, monkeypatch):
+        monkeypatch.setattr(settings, "CF_ORIGIN_SECRET", "")
+        req = _raw_request({"cf-connecting-ip": "1.2.3.4"})
+        assert from_cloudflare(req) is False
+        assert client_ip(req) == "10.0.0.1"

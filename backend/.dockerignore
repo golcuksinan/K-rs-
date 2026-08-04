@@ -19,6 +19,7 @@ alembic/versions/*.pyc
 .pau_state.json
 .pau_state.json.bak
 scripts/
+tests/
 .pytest_cache/
 
 # Veritabanı yedekleri (Seed dosyaları)
