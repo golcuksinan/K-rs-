@@ -1,157 +1,276 @@
-import {
-useState
-} from "react";
+import { useEffect, useState } from "react";
 
+import { useNavigate } from "react-router-dom";
 
-import {
-registerUser
-} from "../../api/auth";
+import { registerUser } from "../../api/auth";
 
+import { getUniversities } from "../../api/universities";
 
-export default function Register(){
+import { getFaculties } from "../../api/faculties";
 
+import { getDepartments } from "../../api/departments";
 
-const [form,setForm]=useState({
+import parseError from "../../api/parseError";
 
-name:"",
-email:"",
-password:""
+import ErrorMessage from "../../components/Error";
 
-});
 
+export default function Register() {
 
+    const navigate = useNavigate();
 
-const submit=(e)=>{
+    const [form, setForm] = useState({ email: "", password: "", enrollment_year: "" });
 
-e.preventDefault();
+    const [universiteAra, setUniversiteAra] = useState("");
 
+    const [universiteler, setUniversiteler] = useState([]);
 
-registerUser(form)
+    const [universiteId, setUniversiteId] = useState("");
 
-.then(()=>{
+    const [fakulteler, setFakulteler] = useState([]);
 
-window.location="/giris";
+    const [fakulteId, setFakulteId] = useState("");
 
-});
+    const [bolumler, setBolumler] = useState([]);
 
+    const [bolumId, setBolumId] = useState("");
 
-};
+    const [hata, setHata] = useState("");
 
+    const [gonderiliyor, setGonderiliyor] = useState(false);
 
 
-return (
+    // Her tuşta istek atılmaz: global limit 20/second ve dev'de StrictMode effect'i ikiye katlıyor.
+    useEffect(() => {
 
-<div className="
-max-w-md
-mx-auto
-px-6
-py-20
-">
+        const zamanlayici = setTimeout(() => {
 
+            getUniversities({ search: universiteAra.trim() || undefined, limit: 20 })
 
-<h1 className="
-heading-font
-text-4xl
-mb-8
-">
+                .then((res) => setUniversiteler(res.data.items))
 
-Kayıt Ol
+                .catch(() => setUniversiteler([]));
 
-</h1>
+        }, 300);
 
+        return () => clearTimeout(zamanlayici);
 
+    }, [universiteAra]);
 
-<form
 
-onSubmit={submit}
+    useEffect(() => {
 
-className="
-space-y-5
-"
+        if (!universiteId) {
 
->
+            return;
 
+        }
 
-<input
-className="w-full border p-3"
-placeholder="Ad Soyad"
+        getFaculties({ university_id: universiteId, limit: 100 })
 
-onChange={(e)=>
+            .then((res) => setFakulteler(res.data.items))
 
-setForm({
+            .catch(() => setFakulteler([]));
 
-...form,
+    }, [universiteId]);
 
-name:e.target.value
 
-})
+    useEffect(() => {
 
-}
+        if (!fakulteId) {
 
-/>
+            return;
 
+        }
 
-<input
-className="w-full border p-3"
-placeholder="Email"
+        getDepartments({ faculty_id: fakulteId, limit: 100 })
 
-onChange={(e)=>
+            .then((res) => setBolumler(res.data.items))
 
-setForm({
+            .catch(() => setBolumler([]));
 
-...form,
+    }, [fakulteId]);
 
-email:e.target.value
 
-})
+    // Alt seçimler effect'te değil burada sıfırlanır: effect gövdesinde setState
+    // cascading render'a yol açıyor (react-hooks/set-state-in-effect).
+    const universiteSec = (id) => {
 
-}
+        setUniversiteId(id);
 
-/>
+        setFakulteId("");
 
+        setFakulteler([]);
 
-<input
-type="password"
+        setBolumId("");
 
-className="w-full border p-3"
-placeholder="Şifre"
+        setBolumler([]);
 
-onChange={(e)=>
+    };
 
-setForm({
 
-...form,
+    const fakulteSec = (id) => {
 
-password:e.target.value
+        setFakulteId(id);
 
-})
+        setBolumId("");
 
-}
+        setBolumler([]);
 
-/>
+    };
 
 
-<button
+    const submit = (e) => {
 
-className="
-bg-[#102744]
-text-white
-w-full
-py-3
-"
+        e.preventDefault();
 
->
+        setHata("");
 
-Kayıt Ol
+        if (!bolumId) {
 
-</button>
+            setHata("Bölümünüzü seçin");
 
+            return;
 
-</form>
+        }
 
+        setGonderiliyor(true);
 
-</div>
+        registerUser({
 
-);
+            email: form.email,
+
+            password: form.password,
+
+            department_id: Number(bolumId),
+
+            enrollment_year: Number(form.enrollment_year),
+
+        })
+
+            // Yanıt token değil mesaj; e-posta kayıtlı olsa da aynı mesaj döner.
+            .then(() => navigate("/kayit/dogrula", { state: { email: form.email } }))
+
+            .catch((error) => setHata(parseError(error)))
+
+            .finally(() => setGonderiliyor(false));
+
+    };
+
+
+    return (
+
+        <div className="max-w-md mx-auto px-6 py-20">
+
+            <h1 className="heading-font text-4xl mb-8">
+
+                Kayıt Ol
+
+            </h1>
+
+            <form onSubmit={submit} className="space-y-5">
+
+                <input
+                    className="w-full border p-3"
+                    placeholder="E-posta (.edu.tr)"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+
+                <input
+                    type="password"
+                    className="w-full border p-3"
+                    placeholder="Şifre (en az 8 karakter, bir rakam)"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+
+                <input
+                    type="number"
+                    className="w-full border p-3"
+                    placeholder="Üniversiteye giriş yılı"
+                    value={form.enrollment_year}
+                    onChange={(e) => setForm({ ...form, enrollment_year: e.target.value })}
+                />
+
+                <input
+                    className="w-full border p-3"
+                    placeholder="Üniversite ara"
+                    value={universiteAra}
+                    onChange={(e) => setUniversiteAra(e.target.value)}
+                />
+
+                <select
+                    className="w-full border p-3"
+                    value={universiteId}
+                    onChange={(e) => universiteSec(e.target.value)}
+                >
+
+                    <option value="">Üniversite seçin</option>
+
+                    {universiteler.map((universite) => (
+
+                        <option key={universite.id} value={universite.id}>
+                            {universite.name}
+                        </option>
+
+                    ))}
+
+                </select>
+
+                <select
+                    className="w-full border p-3 disabled:opacity-60"
+                    value={fakulteId}
+                    disabled={!universiteId}
+                    onChange={(e) => fakulteSec(e.target.value)}
+                >
+
+                    <option value="">Fakülte seçin</option>
+
+                    {fakulteler.map((fakulte) => (
+
+                        <option key={fakulte.id} value={fakulte.id}>
+                            {fakulte.name}
+                        </option>
+
+                    ))}
+
+                </select>
+
+                <select
+                    className="w-full border p-3 disabled:opacity-60"
+                    value={bolumId}
+                    disabled={!fakulteId}
+                    onChange={(e) => setBolumId(e.target.value)}
+                >
+
+                    <option value="">Bölüm seçin</option>
+
+                    {bolumler.map((bolum) => (
+
+                        <option key={bolum.id} value={bolum.id}>
+                            {bolum.name}
+                        </option>
+
+                    ))}
+
+                </select>
+
+                <button
+                    className="bg-[#102744] text-white w-full py-3 disabled:opacity-60"
+                    disabled={gonderiliyor}
+                >
+
+                    Kayıt Ol
+
+                </button>
+
+            </form>
+
+            <ErrorMessage message={hata} />
+
+        </div>
+
+    );
 
 }

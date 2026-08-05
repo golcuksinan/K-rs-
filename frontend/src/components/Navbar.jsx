@@ -1,233 +1,170 @@
-import {
-Link
-} from "react-router-dom";
+import { useContext, useState } from "react";
 
+import { Link } from "react-router-dom";
 
-import {
-useState
-} from "react";
+import { AuthContext } from "../context/auth-context";
 
 
-export default function Navbar(){
+export default function Navbar() {
 
+    const { user, logout } = useContext(AuthContext);
 
-const [open,setOpen]=useState(false);
+    const [open, setOpen] = useState(false);
 
+    const baglantilar = [
 
+        ["/hocalar", "Hocalar"],
 
-return (
+        ["/dersler", "Dersler"],
 
-<header
+        ["/bolumler", "Bölümler"],
 
-className="
-max-w-[1200px]
-mx-auto
-px-6
-py-6
-"
+        ["/universiteler", "Üniversiteler"],
 
->
+    ];
 
+    if (user) {
 
-<div
+        baglantilar.push(["/yorumlarim", "Yorumlarım"]);
 
-className="
-flex
-justify-between
-items-center
-"
+    }
 
->
+    if (user?.role === "admin") {
 
+        baglantilar.push(["/admin/moderasyon", "Admin"]);
 
-<Link
+    }
 
-to="/"
+    return (
 
-className="
-text-3xl
-font-bold
-"
+        <header className="max-w-[1200px] mx-auto px-6 py-6">
 
->
+            <div className="flex justify-between items-center">
 
-KÜRSÜ
+                <Link to="/" className="text-3xl font-bold">
 
-</Link>
+                    KÜRSÜ
 
+                </Link>
 
+                <button className="md:hidden text-2xl" onClick={() => setOpen(!open)}>
 
-<button
+                    ☰
 
-className="
-md:hidden
-text-2xl
-"
+                </button>
 
-onClick={()=>setOpen(!open)}
+                <nav className="hidden md:flex gap-8 items-center">
 
->
+                    {baglantilar.map(([yol, etiket]) => (
 
-☰
+                        <Link key={yol} to={yol}>
 
-</button>
+                            {etiket}
 
+                        </Link>
 
+                    ))}
 
-<nav
+                    {user ? (
 
-className="
-hidden
-md:flex
-gap-8
-items-center
-"
+                        <>
 
->
+                            <Link to="/profil" className="border px-5 py-2">
 
+                                Profil
 
-<Link to="/hocalar">
+                            </Link>
 
-Hocalar
+                            <button onClick={logout} className="bg-[#102744] text-white px-5 py-2">
 
-</Link>
+                                Çıkış
 
+                            </button>
 
-<Link to="/dersler">
+                        </>
 
-Dersler
+                    ) : (
 
-</Link>
+                        <>
 
+                            <Link to="/giris" className="border px-5 py-2">
 
-<Link to="/bolumler">
+                                Giriş
 
-Bölümler
+                            </Link>
 
-</Link>
+                            <Link to="/kayit" className="bg-[#102744] text-white px-5 py-2">
 
+                                Kayıt
 
-<Link to="/universiteler">
+                            </Link>
 
-Üniversiteler
+                        </>
 
-</Link>
+                    )}
 
+                </nav>
 
+            </div>
 
-<Link
+            {open && (
 
-to="/giris"
+                <div className="md:hidden mt-6 flex flex-col gap-5 border-t pt-5">
 
-className="
-border
-px-5
-py-2
-"
+                    {baglantilar.map(([yol, etiket]) => (
 
->
+                        <Link key={yol} to={yol} onClick={() => setOpen(false)}>
 
-Giriş
+                            {etiket}
 
-</Link>
+                        </Link>
 
+                    ))}
 
+                    {user ? (
 
-<Link
+                        <>
 
-to="/kayit"
+                            <Link to="/profil" onClick={() => setOpen(false)}>
 
-className="
-bg-[#102744]
-text-white
-px-5
-py-2
-"
+                                Profil
 
->
+                            </Link>
 
-Kayıt
+                            <button className="text-left" onClick={logout}>
 
-</Link>
+                                Çıkış
 
+                            </button>
 
+                        </>
 
-</nav>
+                    ) : (
 
+                        <>
 
-</div>
+                            <Link to="/giris" onClick={() => setOpen(false)}>
 
+                                Giriş
 
+                            </Link>
 
-{
+                            <Link to="/kayit" onClick={() => setOpen(false)}>
 
-open &&
+                                Kayıt
 
-<div
+                            </Link>
 
-className="
-md:hidden
-mt-6
-flex
-flex-col
-gap-5
-border-t
-pt-5
-"
+                        </>
 
->
+                    )}
 
+                </div>
 
-<Link to="/hocalar">
+            )}
 
-Hocalar
+        </header>
 
-</Link>
-
-
-<Link to="/dersler">
-
-Dersler
-
-</Link>
-
-
-<Link to="/bolumler">
-
-Bölümler
-
-</Link>
-
-
-<Link to="/universiteler">
-
-Üniversiteler
-
-</Link>
-
-
-<Link to="/giris">
-
-Giriş
-
-</Link>
-
-
-<Link to="/kayit">
-
-Kayıt
-
-</Link>
-
-
-</div>
-
-
-}
-
-
-</header>
-
-);
+    );
 
 }

@@ -27,4 +27,33 @@ api.interceptors.request.use((config)=>{
 });
 
 
+// Şifre sıfırlaması eski token'ları geçersizleştiriyor; elde kalan token'la gezilmesin.
+// /auth/* 401'leri hatalı giriş demek, oturum düşmesi değil.
+api.interceptors.response.use(
+
+    (response)=>response,
+
+    (error)=>{
+
+        const istekAuth = error.config?.url?.startsWith("/auth/");
+
+        if(error.response?.status === 401 && !istekAuth && localStorage.getItem("token")){
+
+            localStorage.removeItem("token");
+
+            if(window.location.pathname !== "/giris"){
+
+                window.location.assign("/giris");
+
+            }
+
+        }
+
+        return Promise.reject(error);
+
+    }
+
+);
+
+
 export default api;

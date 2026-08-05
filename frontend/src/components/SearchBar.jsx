@@ -1,83 +1,77 @@
-import {
-Search
-} from "lucide-react";
+import { useState } from "react";
+
+import { useNavigate } from "react-router-dom";
+
+import { Search } from "lucide-react";
 
 
-export default function SearchBar(){
+export default function SearchBar() {
+
+    const navigate = useNavigate();
+
+    const [terim, setTerim] = useState("");
+
+    const [tur, setTur] = useState("dersler");
 
 
-return (
+    const submit = (e) => {
 
-<div
+        e.preventDefault();
 
-className="
-flex
-w-full
-max-w-[600px]
-border
-border-[#102744]
-bg-white
-"
+        const temiz = terim.trim();
 
->
+        if (!temiz) {
 
+            return;
 
-<div
+        }
 
-className="
-flex
-items-center
-gap-3
-px-5
-flex-1
-"
+        navigate(`/${tur}?search=${encodeURIComponent(temiz)}`);
 
->
+    };
 
 
-<Search size={20}/>
+    return (
 
+        <form
+            onSubmit={submit}
+            className="flex w-full max-w-[600px] border border-[#102744] bg-white"
+        >
 
+            <div className="flex items-center gap-3 px-5 flex-1">
 
-<input
+                <Search size={20} />
 
-type="text"
+                <input
+                    type="text"
+                    placeholder="Hoca veya ders ara..."
+                    className="outline-none w-full bg-transparent text-sm"
+                    value={terim}
+                    onChange={(e) => setTerim(e.target.value)}
+                />
 
-placeholder="Hoca, ders veya bölüm ara..."
+            </div>
 
-className="
-outline-none
-w-full
-bg-transparent
-text-sm
-"
+            <select
+                className="border-l border-[#102744] px-3 text-sm bg-transparent"
+                value={tur}
+                onChange={(e) => setTur(e.target.value)}
+            >
 
- />
+                <option value="dersler">Ders</option>
 
+                <option value="hocalar">Hoca</option>
 
-</div>
+            </select>
 
+            <button className="bg-[#102744] text-white px-8 text-sm">
 
+                Ara
 
-<button
+            </button>
 
-className="
-bg-[#102744]
-text-white
-px-8
-text-sm
-"
+        </form>
 
->
-
-Ara
-
-</button>
-
-
-</div>
-
-
-);
+    );
 
 }

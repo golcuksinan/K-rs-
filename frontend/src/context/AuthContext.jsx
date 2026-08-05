@@ -1,130 +1,102 @@
-import {
-useEffect,
-useState
-} from "react";
+import { useEffect, useState } from "react";
 
+import { getCurrentUser } from "../api/users";
 
-import {
-getCurrentUser
-} from "../api/users";
+import { AuthContext } from "./auth-context";
 
 
-import {
-AuthContext
-} from "./auth-context";
+export default function AuthProvider({ children }) {
 
+    const [user, setUser] = useState(null);
 
+    // Token yoksa beklenecek bir istek de yok: ilk render'da doğrudan false başlar,
+    // effect gövdesinde setState çağrılmaz.
+    const [loading, setLoading] = useState(() =>
 
-export default function AuthProvider({children}){
+        Boolean(localStorage.getItem("token"))
 
+    );
 
-const [user,setUser]=useState(null);
 
-// Token yoksa beklenecek bir istek de yok: ilk render'da doğrudan false başlar,
-// effect gövdesinde setState çağrılmaz.
-const [loading,setLoading]=useState(()=>
+    useEffect(() => {
 
-Boolean(localStorage.getItem("token"))
+        const token = localStorage.getItem("token");
 
-);
+        if (!token) {
 
+            return;
 
+        }
 
-useEffect(()=>{
+        getCurrentUser()
 
+            .then((res) => {
 
-const token=localStorage.getItem("token");
+                setUser(res.data);
 
+            })
 
-if(!token){
+            .catch(() => {
 
-return;
+                localStorage.removeItem("token");
 
-}
+            })
 
+            .finally(() => {
 
-getCurrentUser()
+                setLoading(false);
 
-.then(res=>{
+            });
 
-setUser(res.data);
+    }, []);
 
-})
 
-.catch(()=>{
+    // Giriş/OTP uçları yalnızca {access_token, token_type} döndürüyor; kullanıcı
+    // bilgisi ayrı bir istekle alınır.
+    const login = (accessToken) => {
 
-localStorage.removeItem("token");
+        localStorage.setItem("token", accessToken);
 
-})
+        return getCurrentUser()
 
-.finally(()=>{
+            .then((res) => {
 
-setLoading(false);
+                setUser(res.data);
 
-});
+                return res.data;
 
+            })
 
+            .catch((error) => {
 
-},[]);
+                localStorage.removeItem("token");
 
+                setUser(null);
 
+                throw error;
 
-const login=(data)=>{
+            });
 
+    };
 
-localStorage.setItem(
 
-"token",
+    const logout = () => {
 
-data.access_token
+        localStorage.removeItem("token");
 
-);
+        setUser(null);
 
+    };
 
-setUser(data.user);
 
+    return (
 
-};
+        <AuthContext.Provider value={{ user, login, logout, loading }}>
 
+            {children}
 
+        </AuthContext.Provider>
 
-const logout=()=>{
-
-
-localStorage.removeItem("token");
-
-setUser(null);
-
-
-};
-
-
-
-return (
-
-<AuthContext.Provider
-
-value={{
-
-user,
-
-login,
-
-logout,
-
-loading
-
-}}
-
->
-
-
-{children}
-
-
-</AuthContext.Provider>
-
-);
-
+    );
 
 }

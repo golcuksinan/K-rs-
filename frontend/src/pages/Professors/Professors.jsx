@@ -1,124 +1,138 @@
-import {useEffect,useState} from "react";
+import { useState } from "react";
 
-import {
-getProfessors
-} from "../../api/professors";
+import { Link, useSearchParams } from "react-router-dom";
+
+import { getProfessors } from "../../api/professors";
+
+import useDebounce from "../../hooks/useDebounce";
+import usePagedList from "../../hooks/usePagedList";
 
 import Card from "../../components/Card";
-
-import {
-Link
-} from "react-router-dom";
-
-
-export default function Professors(){
+import ErrorMessage from "../../components/Error";
+import Loading from "../../components/Loading";
+import Pagination from "../../components/Pagination";
 
 
-const [professors,setProfessors]=useState([]);
+const LIMIT = 24;
 
 
+export default function Professors() {
 
-useEffect(()=>{
+    const [queryParams] = useSearchParams();
 
-getProfessors()
+    // Ana sayfadaki arama kutusu buraya ?search= ile yönlendiriyor.
+    const [arama, setArama] = useState(() => queryParams.get("search") ?? "");
 
-.then(res=>{
+    const gecikmeliArama = useDebounce(arama);
 
-setProfessors(res.data.items);
+    const [offset, setOffset] = useState(0);
 
-})
+    const { sayfa, yukleniyor, hata } = usePagedList(
 
-.catch(()=>{});
+        () => getProfessors({ search: gecikmeliArama.trim() || undefined, limit: LIMIT, offset }),
 
+        [gecikmeliArama, offset]
 
-},[]);
-
-
-
-return (
-
-<section className="
-max-w-[1200px]
-mx-auto
-px-6
-py-16
-">
+    );
 
 
-<h1 className="
-heading-font
-text-5xl
-mb-10
-">
+    const aramaDegisti = (deger) => {
 
-Hocalar
+        setArama(deger);
 
-</h1>
+        setOffset(0);
+
+    };
 
 
+    return (
 
-<div className="
-grid
-md:grid-cols-2
-lg:grid-cols-3
-gap-6
-">
+        <section className="max-w-[1200px] mx-auto px-6 py-16">
 
+            <h1 className="heading-font text-5xl mb-10">
 
-{
+                Hocalar
 
-professors.map((professor)=>(
+            </h1>
 
+            <input
+                className="w-full max-w-[400px] border border-[#102744] p-3 mb-10"
+                placeholder="Hoca ara"
+                value={arama}
+                onChange={(e) => aramaDegisti(e.target.value)}
+            />
 
-<Link
+            {yukleniyor && <Loading />}
 
-key={professor.id}
+            <ErrorMessage message={hata} />
 
-to={`/hocalar/${professor.id}`}
+            {!yukleniyor && !hata && sayfa.items.length === 0 && (
 
->
+                <p className="text-gray-600">
 
+                    Aramanızla eşleşen hoca yok.
 
-<Card className="p-6">
+                </p>
 
+            )}
 
-<h2 className="
-text-xl
-font-semibold
-">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-{professor.name}
+                {sayfa.items.map((hoca) => (
 
-</h2>
+                    <Link key={hoca.id} to={`/hocalar/${hoca.id}`}>
 
+                        <Card className="p-6 h-full">
 
-<p className="
-mt-2
-text-gray-600
-">
+                            <h2 className="text-xl font-semibold">
 
-{professor.department?.name}
+                                {hoca.title ? `${hoca.title} ` : ""}{hoca.full_name}
 
-</p>
+                            </h2>
 
+                            <p className="text-gray-600 mt-2 text-sm">
 
-</Card>
+                                {hoca.course_count} ders · {hoca.review_count} değerlendirme
 
+                            </p>
 
-</Link>
+                            {hoca.review_count === 0 ? (
 
+                                <p className="mt-2 text-sm">
 
-))
+                                    henüz yorum yok
 
+                                </p>
 
-}
+                            ) : (
 
+                                <p className="mt-2 text-sm">
 
-</div>
+                                    Anlatım {hoca.average_teaching_score} ·
+                                    Zorluk {hoca.average_difficulty_score} ·
+                                    Adalet {hoca.average_fairness_score}
 
+                                </p>
 
-</section>
+                            )}
 
-);
+                        </Card>
+
+                    </Link>
+
+                ))}
+
+            </div>
+
+            <Pagination
+                total={sayfa.total}
+                limit={LIMIT}
+                offset={offset}
+                onChange={setOffset}
+            />
+
+        </section>
+
+    );
 
 }

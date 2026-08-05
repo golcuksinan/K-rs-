@@ -1,6 +1,7 @@
 import {
     Routes,
-    Route
+    Route,
+    Navigate
 } from "react-router-dom";
 
 
@@ -8,12 +9,17 @@ import MainLayout from "../layouts/MainLayout";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
+import AdminRoute from "../components/AdminRoute";
+
 
 import Home from "../pages/Home";
 
 
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
+import VerifyOtp from "../pages/Auth/VerifyOtp";
+import ForgotPassword from "../pages/Auth/ForgotPassword";
+import ResetPassword from "../pages/Auth/ResetPassword";
 
 
 import Professors from "../pages/Professors/Professors";
@@ -30,6 +36,12 @@ import Universities from "../pages/Universities";
 
 
 import CreateReview from "../pages/Reviews/CreateReview";
+import MyReviews from "../pages/Reviews/MyReviews";
+
+
+import Moderation from "../pages/Admin/Moderation";
+import Reports from "../pages/Admin/Reports";
+import Stats from "../pages/Admin/Stats";
 
 
 import Profile from "../pages/Profile";
@@ -116,9 +128,30 @@ element={<Departments/>}
 
 <Route
 
-path="/fakulteler"
+path="/fakulteler/:facultyId/bolumler"
+
+element={<Departments/>}
+
+/>
+
+
+
+<Route
+
+path="/universiteler/:universityId/fakulteler"
 
 element={<Faculties/>}
+
+/>
+
+
+
+{/* Fakülte listesi üniversite olmadan çalışmıyor (GET /faculties university_id ister). */}
+<Route
+
+path="/fakulteler"
+
+element={<Navigate to="/universiteler" replace/>}
 
 />
 
@@ -145,6 +178,78 @@ element={
 <CreateReview/>
 
 </ProtectedRoute>
+
+}
+
+/>
+
+
+
+<Route
+
+path="/yorumlarim"
+
+element={
+
+<ProtectedRoute>
+
+<MyReviews/>
+
+</ProtectedRoute>
+
+}
+
+/>
+
+
+
+<Route
+
+path="/admin/moderasyon"
+
+element={
+
+<AdminRoute>
+
+<Moderation/>
+
+</AdminRoute>
+
+}
+
+/>
+
+
+
+<Route
+
+path="/admin/raporlar"
+
+element={
+
+<AdminRoute>
+
+<Reports/>
+
+</AdminRoute>
+
+}
+
+/>
+
+
+
+<Route
+
+path="/admin/istatistikler"
+
+element={
+
+<AdminRoute>
+
+<Stats/>
+
+</AdminRoute>
 
 }
 
@@ -189,6 +294,36 @@ element={<Login/>}
 path="/kayit"
 
 element={<Register/>}
+
+/>
+
+
+
+<Route
+
+path="/kayit/dogrula"
+
+element={<VerifyOtp/>}
+
+/>
+
+
+
+<Route
+
+path="/sifremi-unuttum"
+
+element={<ForgotPassword/>}
+
+/>
+
+
+
+<Route
+
+path="/sifre-sifirla"
+
+element={<ResetPassword/>}
 
 />
 

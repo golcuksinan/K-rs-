@@ -1,101 +1,129 @@
-import {
-useEffect,
-useState
-} from "react";
+import { useState } from "react";
 
-import {
-getFaculties
-} from "../api/faculties";
+import { Link, useParams } from "react-router-dom";
+
+import { getFaculties } from "../api/faculties";
+
+import useDebounce from "../hooks/useDebounce";
+import usePagedList from "../hooks/usePagedList";
 
 import Card from "../components/Card";
+import ErrorMessage from "../components/Error";
+import Loading from "../components/Loading";
+import Pagination from "../components/Pagination";
 
 
-export default function Faculties(){
+const LIMIT = 24;
 
 
-const [faculties,setFaculties]=useState([]);
+export default function Faculties() {
+
+    const { universityId } = useParams();
+
+    const [arama, setArama] = useState("");
+
+    const gecikmeliArama = useDebounce(arama);
+
+    const [offset, setOffset] = useState(0);
+
+    const { sayfa, yukleniyor, hata } = usePagedList(
+
+        () => getFaculties({
+
+            university_id: universityId,
+
+            search: gecikmeliArama.trim() || undefined,
+
+            limit: LIMIT,
+
+            offset,
+
+        }),
+
+        [universityId, gecikmeliArama, offset]
+
+    );
 
 
+    const aramaDegisti = (deger) => {
 
-useEffect(()=>{
+        setArama(deger);
 
-getFaculties()
+        setOffset(0);
 
-.then(res=>{
-
-setFaculties(res.data.items);
-
-});
+    };
 
 
-},[]);
+    return (
 
+        <section className="max-w-[1200px] mx-auto px-6 py-16">
 
+            <h1 className="heading-font text-5xl mb-4">
 
-return (
+                Fakülteler
 
-<section className="
-max-w-[1200px]
-mx-auto
-px-6
-py-16
-">
+            </h1>
 
+            <p className="mb-10">
 
-<h1 className="
-heading-font
-text-5xl
-mb-10
-">
+                <Link to="/universiteler" className="underline">
+                    Üniversite listesine dön
+                </Link>
 
-Fakülteler
+            </p>
 
-</h1>
+            <input
+                className="w-full max-w-[400px] border border-[#102744] p-3 mb-10"
+                placeholder="Fakülte ara"
+                value={arama}
+                onChange={(e) => aramaDegisti(e.target.value)}
+            />
 
+            {yukleniyor && <Loading />}
 
+            <ErrorMessage message={hata} />
 
-<div className="
-grid
-md:grid-cols-3
-gap-6
-">
+            {!yukleniyor && !hata && sayfa.items.length === 0 && (
 
+                <p className="text-gray-600">
 
-{
+                    Bu üniversitede listelenecek fakülte yok.
 
-faculties.map(item=>(
+                </p>
 
+            )}
 
-<Card
+            <div className="grid md:grid-cols-3 gap-6">
 
-key={item.id}
+                {sayfa.items.map((fakulte) => (
 
-className="p-6"
+                    <Link key={fakulte.id} to={`/fakulteler/${fakulte.id}/bolumler`}>
 
->
+                        <Card className="p-6 h-full">
 
+                            <h2 className="text-xl font-semibold">
 
-<h2 className="text-xl font-semibold">
+                                {fakulte.name}
 
-{item.name}
+                            </h2>
 
-</h2>
+                        </Card>
 
+                    </Link>
 
-</Card>
+                ))}
 
+            </div>
 
-))
+            <Pagination
+                total={sayfa.total}
+                limit={LIMIT}
+                offset={offset}
+                onChange={setOffset}
+            />
 
+        </section>
 
-}
-
-
-</div>
-
-
-</section>
-
-);
+    );
 
 }

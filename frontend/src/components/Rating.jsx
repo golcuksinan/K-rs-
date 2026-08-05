@@ -1,55 +1,55 @@
-export default function Rating({
+// Tek skor yok: anlatım/zorluk/adalet ayrı ortalamalar. Ortalamalar yalnızca onaylı
+// yorumlardan hesaplandığı için hiç onaylı yorum yokken üçü de null gelir.
+export default function Rating({ teaching, difficulty, fairness }) {
 
-value=0
+    if (teaching === null || teaching === undefined) {
 
-}){
+        return (
 
+            <p className="text-sm text-gray-600">
 
-return (
+                henüz yorum yok
 
-<div className="flex gap-1">
+            </p>
 
-{
+        );
 
-Array.from({
+    }
 
-length:5
+    return (
 
-}).map((_,index)=>(
+        <dl className="flex gap-6 text-sm">
 
+            {[
 
-<span
+                ["Anlatım", teaching],
 
-key={index}
+                ["Zorluk", difficulty],
 
-className={
+                ["Adalet", fairness],
 
-index < value
+            ].map(([etiket, deger]) => (
 
-?
+                <div key={etiket}>
 
-"text-yellow-500"
+                    <dt className="text-gray-600">
 
-:
+                        {etiket}
 
-"text-gray-300"
+                    </dt>
 
-}
+                    <dd className="font-semibold">
 
->
+                        {deger?.toFixed(1)} / 5
 
-★
+                    </dd>
 
-</span>
+                </div>
 
+            ))}
 
-))
+        </dl>
 
-}
-
-
-</div>
-
-);
+    );
 
 }

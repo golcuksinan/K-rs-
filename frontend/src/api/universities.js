@@ -1,8 +1,3 @@
 import api from "./axios";
 
-
-export const getUniversities=()=>{
-
-    return api.get("/universities");
-
-};
+export const getUniversities = (params) => api.get("/universities", { params });

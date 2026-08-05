@@ -1,115 +1,119 @@
-import {
-useContext
-} from "react";
+import { useContext } from "react";
 
+import { Link } from "react-router-dom";
 
-import {
-AuthContext
-} from "../context/auth-context";
-
+import { AuthContext } from "../context/auth-context";
 
 import Card from "../components/Card";
 
 
-export default function Profile(){
+// Sınıf enrollment_year'dan hesaplanıp int olarak dönüyor; 0 hazırlık demek.
+const sinifYazisi = (sinif) => (sinif === 0 ? "Hazırlık" : `${sinif}. sınıf`);
 
 
-const {
-user,
-logout
-}=useContext(AuthContext);
+export default function Profile() {
 
+    const { user, logout } = useContext(AuthContext);
 
+    if (!user) {
 
-return (
+        return null;
 
-<section
+    }
 
-className="
-max-w-[1000px]
-mx-auto
-px-6
-py-16
-"
+    // E-posta ve isim hiçbir yanıtta dönmüyor (anonimlik); gösterilecek alanlar bunlar.
+    const satirlar = [
 
->
+        ["Üniversite", user.university_short_name || user.university_name],
 
+        ["Fakülte", user.faculty_name],
 
-<h1
+        ["Bölüm", user.department_name],
 
-className="
-heading-font
-text-5xl
-mb-10
-"
+        ["Sınıf", sinifYazisi(user.current_grade)],
 
->
+        ["Kayıt yılı", user.enrollment_year],
 
-Profil
+        ["E-posta doğrulaması", user.is_verified ? "tamamlandı" : "bekliyor"],
 
-</h1>
+    ];
 
+    return (
 
+        <section className="max-w-[1000px] mx-auto px-6 py-16">
 
-<Card
+            <h1 className="heading-font text-5xl mb-10">
 
-className="
-p-8
-"
+                Profil
 
->
+            </h1>
 
+            <Card className="p-8">
 
-<h2
+                <dl className="space-y-3">
 
-className="
-text-2xl
-font-semibold
-"
+                    {satirlar.map(([etiket, deger]) => (
 
->
+                        <div key={etiket} className="flex justify-between gap-6">
 
-{user?.name}
+                            <dt className="text-gray-600">
 
-</h2>
+                                {etiket}
 
+                            </dt>
 
+                            <dd>
 
-<p className="mt-3">
+                                {deger}
 
-{user?.email}
+                            </dd>
 
-</p>
+                        </div>
 
+                    ))}
 
+                </dl>
 
-<button
+                {user.role === "admin" && (
 
-onClick={logout}
+                    <p className="mt-6">
 
-className="
-mt-8
-bg-[#102744]
-text-white
-px-6
-py-3
-"
+                        <Link to="/admin/moderasyon" className="underline">
 
->
+                            Admin paneli
 
-Çıkış Yap
+                        </Link>
 
-</button>
+                    </p>
 
+                )}
 
+                <p className="mt-6">
 
-</Card>
+                    <Link to="/yorumlarim" className="underline">
 
+                        Yorumlarım
 
+                    </Link>
 
-</section>
+                </p>
 
-);
+                <button
 
+                    onClick={logout}
+
+                    className="mt-8 bg-[#102744] text-white px-6 py-3"
+
+                >
+
+                    Çıkış Yap
+
+                </button>
+
+            </Card>
+
+        </section>
+
+    );
 
 }

@@ -1,15 +1,4 @@
 import api from "./axios";
 
-
-export const getCourses = () => {
-
-    return api.get("/courses");
-
-};
-
-
-export const getCourse = (id) => {
-
-    return api.get(`/courses/${id}`);
-
-};
+// department_id ya da en az 2 karakterlik search zorunlu, ikisi de yoksa 422.
+export const getCourses = (params) => api.get("/courses", { params });

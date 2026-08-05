@@ -1,15 +1,12 @@
 import api from "./axios";
 
+// status filtresi yalnızca admin token'ıyla çalışır, aksi halde 403.
+export const getReviews = (params) => api.get("/reviews", { params });
 
-export const getReviews = () => {
+export const getMyReviews = (params) => api.get("/reviews/me", { params });
 
-    return api.get("/reviews");
+export const createReview = (data) => api.post("/reviews", data);
 
-};
+export const updateReview = (id, data) => api.patch(`/reviews/${id}`, data);
 
-
-export const createReview = (data) => {
-
-    return api.post("/reviews",data);
-
-};
+export const deleteReview = (id) => api.delete(`/reviews/${id}`);

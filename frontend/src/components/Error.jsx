@@ -1,22 +1,19 @@
-export default function ErrorMessage(){
+export default function ErrorMessage({ message }) {
 
+    if (!message) {
 
-return (
+        return null;
 
-<div
+    }
 
-className="
-text-center
-py-10
-text-red-600
-"
+    return (
 
->
+        <div className="text-center py-10 text-red-600">
 
+            {message}
 
-</div>
+        </div>
 
-);
-
+    );
 
 }

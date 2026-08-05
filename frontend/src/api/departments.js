@@ -1,8 +1,4 @@
 import api from "./axios";
 
-
-export const getDepartments=()=>{
-
-    return api.get("/departments");
-
-};
+// faculty_id verilirse düz liste, verilmezse ada göre gruplanmış liste döner.
+export const getDepartments = (params) => api.get("/departments", { params });

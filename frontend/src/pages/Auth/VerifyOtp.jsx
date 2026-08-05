@@ -1,8 +1,8 @@
-import { useState, useContext } from "react";
+import { useContext, useState } from "react";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { loginUser } from "../../api/auth";
+import { verifyOtp } from "../../api/auth";
 
 import parseError from "../../api/parseError";
 
@@ -11,13 +11,18 @@ import ErrorMessage from "../../components/Error";
 import { AuthContext } from "../../context/auth-context";
 
 
-export default function Login() {
+export default function VerifyOtp() {
 
     const { login } = useContext(AuthContext);
 
     const navigate = useNavigate();
 
-    const [form, setForm] = useState({ email: "", password: "" });
+    const location = useLocation();
+
+    // Sayfa yenilenirse router state'i kaybolur, e-posta elle girilebilsin.
+    const [email, setEmail] = useState(location.state?.email ?? "");
+
+    const [otp, setOtp] = useState("");
 
     const [hata, setHata] = useState("");
 
@@ -32,11 +37,10 @@ export default function Login() {
 
         setGonderiliyor(true);
 
-        loginUser(form)
+        verifyOtp({ email, otp })
 
             .then((res) => login(res.data.access_token))
 
-            // Tam sayfa yenilemesi context'i sıfırlıyor, yönlendirme router üzerinden.
             .then(() => navigate("/"))
 
             .catch((error) => setHata(parseError(error)))
@@ -50,49 +54,41 @@ export default function Login() {
 
         <div className="max-w-md mx-auto px-6 py-20">
 
-            <h1 className="heading-font text-4xl mb-8">
+            <h1 className="heading-font text-4xl mb-4">
 
-                Giriş
+                E-postanı Doğrula
 
             </h1>
+
+            <p className="mb-8 text-gray-600">
+
+                Adresinize gönderilen 6 haneli kodu girin.
+
+            </p>
 
             <form onSubmit={submit} className="space-y-5">
 
                 <input
-
                     className="w-full border p-3"
-
                     placeholder="E-posta"
-
-                    value={form.email}
-
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                 />
 
                 <input
-
-                    type="password"
-
                     className="w-full border p-3"
-
-                    placeholder="Şifre"
-
-                    value={form.password}
-
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-
+                    placeholder="Doğrulama kodu"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
                 />
 
                 <button
-
                     className="bg-[#102744] text-white w-full py-3 disabled:opacity-60"
-
                     disabled={gonderiliyor}
-
                 >
 
-                    Giriş Yap
+                    Doğrula
 
                 </button>
 
@@ -100,13 +96,17 @@ export default function Login() {
 
             <ErrorMessage message={hata} />
 
-            <p className="text-center mt-6">
+            {hata.includes("kayıt olun") && (
 
-                <Link to="/sifremi-unuttum" className="underline">
-                    Şifremi unuttum
-                </Link>
+                <p className="text-center">
 
-            </p>
+                    <Link to="/kayit" className="underline">
+                        Kayıt ekranına dön
+                    </Link>
+
+                </p>
+
+            )}
 
         </div>
 
