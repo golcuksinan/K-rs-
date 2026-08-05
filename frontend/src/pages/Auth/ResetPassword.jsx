@@ -25,6 +25,8 @@ export default function ResetPassword() {
 
     });
 
+    const [tekrar, setTekrar] = useState("");
+
     const [hata, setHata] = useState("");
 
     const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -35,6 +37,14 @@ export default function ResetPassword() {
         e.preventDefault();
 
         setHata("");
+
+        if (form.new_password !== tekrar) {
+
+            setHata("Şifreler eşleşmiyor");
+
+            return;
+
+        }
 
         setGonderiliyor(true);
 
@@ -82,6 +92,14 @@ export default function ResetPassword() {
                     placeholder="Yeni şifre (en az 8 karakter, bir rakam)"
                     value={form.new_password}
                     onChange={(e) => setForm({ ...form, new_password: e.target.value })}
+                />
+
+                <input
+                    type="password"
+                    className="w-full border p-3"
+                    placeholder="Yeni şifre (tekrar)"
+                    value={tekrar}
+                    onChange={(e) => setTekrar(e.target.value)}
                 />
 
                 <button

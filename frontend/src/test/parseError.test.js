@@ -25,6 +25,23 @@ describe("parseError", () => {
 
     });
 
+    it("pydantic'in eklediği etiketi kırpar", () => {
+
+        const hata = {
+            response: {
+                data: {
+                    detail: [
+                        { msg: "Value error, Şifre en az bir rakam içermeli" },
+                        { msg: "Assertion failed, Geçersiz yıl" },
+                    ],
+                },
+            },
+        };
+
+        expect(parseError(hata)).toBe("Şifre en az bir rakam içermeli, Geçersiz yıl");
+
+    });
+
     it("429'un {error} gövdesini okur", () => {
 
         const hata = { response: { data: { error: "Çok fazla istek" } } };

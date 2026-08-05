@@ -106,8 +106,11 @@ export default function Stats() {
 
     const [gun, setGun] = useState(30);
 
+    // İstek tarayıcı tarafında düşerse (eklenti/ağ) kullanıcının tek çaresi sayfayı yenilemek olurdu.
+    const [deneme, setDeneme] = useState(0);
+
     // Bu iki uç Page zarfı kullanmaz; usePagedList yerine doğrudan okunuyor.
-    const [ozet, setOzet] = useState({ yuklendi: false, veri: null, hata: "" });
+    const [ozet, setOzet] = useState({ anahtar: null, veri: null, hata: "" });
 
     const [olaylar, setOlaylar] = useState({ anahtar: null, veri: null, hata: "" });
 
@@ -122,7 +125,7 @@ export default function Stats() {
 
                 if (!iptal) {
 
-                    setOzet({ yuklendi: true, veri: res.data, hata: "" });
+                    setOzet({ anahtar: deneme, veri: res.data, hata: "" });
 
                 }
 
@@ -132,7 +135,7 @@ export default function Stats() {
 
                 if (!iptal) {
 
-                    setOzet({ yuklendi: true, veri: null, hata: parseError(error) });
+                    setOzet({ anahtar: deneme, veri: null, hata: parseError(error) });
 
                 }
 
@@ -144,7 +147,7 @@ export default function Stats() {
 
         };
 
-    }, []);
+    }, [deneme]);
 
 
     useEffect(() => {
@@ -157,7 +160,7 @@ export default function Stats() {
 
                 if (!iptal) {
 
-                    setOlaylar({ anahtar: gun, veri: res.data, hata: "" });
+                    setOlaylar({ anahtar: `${gun}-${deneme}`, veri: res.data, hata: "" });
 
                 }
 
@@ -167,7 +170,7 @@ export default function Stats() {
 
                 if (!iptal) {
 
-                    setOlaylar({ anahtar: gun, veri: null, hata: parseError(error) });
+                    setOlaylar({ anahtar: `${gun}-${deneme}`, veri: null, hata: parseError(error) });
 
                 }
 
@@ -179,10 +182,10 @@ export default function Stats() {
 
         };
 
-    }, [gun]);
+    }, [gun, deneme]);
 
 
-    const olayYukleniyor = olaylar.anahtar !== gun;
+    const olayYukleniyor = olaylar.anahtar !== `${gun}-${deneme}`;
 
     return (
 
@@ -196,9 +199,19 @@ export default function Stats() {
 
             <AdminNav />
 
-            {!ozet.yuklendi && <Loading />}
+            {ozet.anahtar !== deneme && <Loading />}
 
             <ErrorMessage message={ozet.hata} />
+
+            {ozet.hata && (
+
+                <button className="underline" onClick={() => setDeneme(deneme + 1)}>
+
+                    Tekrar dene
+
+                </button>
+
+            )}
 
             {ozet.veri && (
 
@@ -255,6 +268,16 @@ export default function Stats() {
                 {olayYukleniyor && <Loading />}
 
                 <ErrorMessage message={olaylar.hata} />
+
+                {olaylar.hata && (
+
+                    <button className="underline" onClick={() => setDeneme(deneme + 1)}>
+
+                        Tekrar dene
+
+                    </button>
+
+                )}
 
                 {olaylar.veri && (
 

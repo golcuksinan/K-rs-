@@ -1,10 +1,14 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
+import BackButton from "../components/BackButton";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 
 export default function MainLayout(){
+
+
+const { pathname } = useLocation();
 
 
 return (
@@ -43,6 +47,25 @@ z-10
 
 
 <Navbar />
+
+
+{pathname !== "/" && (
+
+<div
+
+className="
+max-w-[1200px]
+mx-auto
+px-6
+"
+
+>
+
+<BackButton/>
+
+</div>
+
+)}
 
 
 <main>

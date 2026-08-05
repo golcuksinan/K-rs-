@@ -108,6 +108,16 @@ export default function Login() {
 
             </p>
 
+            <p className="text-center mt-3">
+
+                Hesabın yok mu?{" "}
+
+                <Link to="/kayit" className="underline">
+                    Kayıt ol
+                </Link>
+
+            </p>
+
         </div>
 
     );

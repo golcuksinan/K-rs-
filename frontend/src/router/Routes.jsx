@@ -7,6 +7,8 @@ import {
 
 import MainLayout from "../layouts/MainLayout";
 
+import AuthLayout from "../layouts/AuthLayout";
+
 import ProtectedRoute from "../components/ProtectedRoute";
 
 import AdminRoute from "../components/AdminRoute";
@@ -274,9 +276,26 @@ element={
 />
 
 
+
+<Route
+
+path="*"
+
+element={<NotFound/>}
+
+/>
+
+
 </Route>
 
 
+
+
+<Route
+
+element={<AuthLayout/>}
+
+>
 
 
 <Route
@@ -328,14 +347,7 @@ element={<ResetPassword/>}
 />
 
 
-
-<Route
-
-path="*"
-
-element={<NotFound/>}
-
-/>
+</Route>
 
 
 

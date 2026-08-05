@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import SearchBar from "./SearchBar";
 import {
 Users,
@@ -5,28 +7,66 @@ MessageCircle,
 GraduationCap
 } from "lucide-react";
 
+import { getUniversities } from "../api/universities";
+import { getProfessors } from "../api/professors";
+import { getReviews } from "../api/reviews";
+
 
 export default function Hero(){
+
+
+const [sayilar,setSayilar]=useState({
+universite:null,
+hoca:null,
+yorum:null
+});
+
+
+// Ana sayfa kritik değil: istek hata verirse sayı "—" kalır, ekranda hata gösterilmez.
+useEffect(()=>{
+
+let iptal=false;
+
+const oku=(istek,alan)=>istek
+.then((res)=>{
+if(!iptal){
+setSayilar((onceki)=>({...onceki,[alan]:res.data.total}));
+}
+})
+.catch(()=>{});
+
+oku(getUniversities({limit:1}),"universite");
+oku(getProfessors({limit:1}),"hoca");
+oku(getReviews({limit:1}),"yorum");
+
+return ()=>{
+iptal=true;
+};
+
+},[]);
+
+
+const bicimle=(deger)=>deger===null?"—":deger.toLocaleString("tr-TR");
 
 
 const stats=[
 
 {
+icon:GraduationCap,
+number:bicimle(sayilar.universite),
+text:"Üniversite"
+},
+
+{
 icon:Users,
-number:"1.200+",
+number:bicimle(sayilar.hoca),
 text:"Hoca"
 },
 
 {
 icon:MessageCircle,
-number:"8.000+",
+number:bicimle(sayilar.yorum),
 text:"Yorum"
-},
-
-{
-icon:GraduationCap,
-number:"20+",
-text:"Bölüm"
 }
 
 ];
