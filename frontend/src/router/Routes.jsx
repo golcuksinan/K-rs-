@@ -26,6 +26,7 @@ import ResetPassword from "../pages/Auth/ResetPassword";
 
 import Professors from "../pages/Professors/Professors";
 import ProfessorDetail from "../pages/Professors/ProfessorDetail";
+import CourseProfessorDetail from "../pages/Professors/CourseProfessorDetail";
 
 
 import Courses from "../pages/Courses/Courses";
@@ -93,6 +94,16 @@ element={<Professors/>}
 path="/hocalar/:id"
 
 element={<ProfessorDetail/>}
+
+/>
+
+
+
+<Route
+
+path="/hocalar/:professorId/dersler/:courseProfessorId"
+
+element={<CourseProfessorDetail/>}
 
 />
 

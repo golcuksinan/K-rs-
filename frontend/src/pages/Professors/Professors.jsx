@@ -108,9 +108,9 @@ export default function Professors() {
 
                                 <p className="mt-2 text-sm">
 
-                                    Anlatım {hoca.average_teaching_score} ·
-                                    Zorluk {hoca.average_difficulty_score} ·
-                                    Adalet {hoca.average_fairness_score}
+                                    Anlatım {hoca.average_teaching_score.toFixed(1)} ·
+                                    Zorluk {hoca.average_difficulty_score.toFixed(1)} ·
+                                    Adalet {hoca.average_fairness_score.toFixed(1)}
 
                                 </p>
 

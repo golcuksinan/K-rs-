@@ -16,7 +16,7 @@ const MIN_GEREKCE = 3;
 const MAX_GEREKCE = 500;
 
 
-export default function ReviewCard({ review }) {
+export default function ReviewCard({ review, etiket }) {
 
     const { user } = useContext(AuthContext);
 
@@ -53,6 +53,16 @@ export default function ReviewCard({ review }) {
     return (
 
         <Card className="p-6">
+
+            {etiket && (
+
+                <p className="text-sm text-gray-600 mb-3">
+
+                    {etiket}
+
+                </p>
+
+            )}
 
             <Rating
                 teaching={review.teaching_score}

@@ -20,6 +20,8 @@ import ReviewCard from "../../components/ReviewCard";
 
 const YORUM_LIMIT = 10;
 
+const DERS_LIMIT = 6;
+
 
 export default function ProfessorDetail() {
 
@@ -27,10 +29,10 @@ export default function ProfessorDetail() {
 
     const [sonuc, setSonuc] = useState({ anahtar: null, hoca: null, hata: "" });
 
-    const [secili, setSecili] = useState(null);
-
     // Ders başına seçili dönem: "Yorum yap" tek bir course_professor_id istiyor.
     const [donemler, setDonemler] = useState({});
+
+    const [tumDersler, setTumDersler] = useState(false);
 
     const [offset, setOffset] = useState(0);
 
@@ -77,30 +79,19 @@ export default function ProfessorDetail() {
 
             professor_id: id,
 
-            course_id: secili || undefined,
-
             limit: YORUM_LIMIT,
 
             offset,
 
         }),
 
-        [id, secili, offset]
+        [id, offset]
 
     );
 
     const yukleniyor = sonuc.anahtar !== id;
 
     const hoca = sonuc.hoca;
-
-
-    const dersSec = (dersId) => {
-
-        setSecili(secili === dersId ? null : dersId);
-
-        setOffset(0);
-
-    };
 
 
     if (yukleniyor) {
@@ -114,6 +105,26 @@ export default function ProfessorDetail() {
         return <ErrorMessage message={sonuc.hata || "Hoca bulunamadı"} />;
 
     }
+
+    // Yorumlar hocanın tüm derslerinden geliyor; ReviewResponse ders/dönem taşımadığı için
+    // etiket course_professor_id üzerinden burada eşleştirilir.
+    const etiketler = {};
+
+    hoca.courses.forEach((ders) => ders.terms.forEach((donem) => {
+
+        etiketler[donem.course_professor_id] = `${ders.course_name} · ${donem.term}`;
+
+    }));
+
+    // Hoca başına ortalama 7, en fazla 39 ders var; hepsi basılınca yorumlar ekranlarca aşağıda
+    // kalıyor. Kısa listede en çok yorum alan dersler görünsün.
+    const siraliDersler = [...hoca.courses].sort((a, b) => (
+
+        b.review_count - a.review_count || a.course_name.localeCompare(b.course_name, "tr")
+
+    ));
+
+    const gosterilenDersler = tumDersler ? siraliDersler : siraliDersler.slice(0, DERS_LIMIT);
 
     return (
 
@@ -143,25 +154,22 @@ export default function ProfessorDetail() {
 
             <div className="grid md:grid-cols-2 gap-6">
 
-                {hoca.courses.map((ders) => {
+                {gosterilenDersler.map((ders) => {
 
                     const seciliDonem = donemler[ders.course_id] ?? ders.terms[0].course_professor_id;
 
                     return (
 
-                        <Card
-                            key={ders.course_id}
-                            className={`p-6 ${secili === ders.course_id ? "border-2" : ""}`}
-                        >
+                        <Card key={ders.course_id} className="p-6">
 
-                            <button
-                                className="text-xl font-semibold text-left w-full"
-                                onClick={() => dersSec(ders.course_id)}
+                            <Link
+                                to={`/hocalar/${id}/dersler/${seciliDonem}`}
+                                className="text-xl font-semibold underline"
                             >
 
                                 {ders.course_name}
 
-                            </button>
+                            </Link>
 
                             <p className="text-gray-600 text-sm mt-1 mb-4">
 
@@ -241,27 +249,28 @@ export default function ProfessorDetail() {
 
             </div>
 
+            {hoca.courses.length > DERS_LIMIT && (
+
+                <button
+                    className="underline text-sm mt-6"
+                    onClick={() => setTumDersler(!tumDersler)}
+                >
+
+                    {tumDersler
+
+                        ? "Dersleri gizle"
+
+                        : `Tüm dersleri göster (${hoca.courses.length})`}
+
+                </button>
+
+            )}
+
             <h2 className="heading-font text-3xl mt-12 mb-6">
 
                 Yorumlar
 
             </h2>
-
-            {secili && (
-
-                <p className="mb-6 text-sm">
-
-                    Seçili ders için filtrelendi.{" "}
-
-                    <button className="underline" onClick={() => dersSec(secili)}>
-
-                        Tüm yorumlar
-
-                    </button>
-
-                </p>
-
-            )}
 
             {yorumlar.yukleniyor && <Loading />}
 
@@ -281,7 +290,11 @@ export default function ProfessorDetail() {
 
                 {yorumlar.sayfa.items.map((yorum) => (
 
-                    <ReviewCard key={yorum.id} review={yorum} />
+                    <ReviewCard
+                        key={yorum.id}
+                        review={yorum}
+                        etiket={etiketler[yorum.course_professor_id]}
+                    />
 
                 ))}
 
