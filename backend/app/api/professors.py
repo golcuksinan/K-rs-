@@ -10,8 +10,8 @@ from app.models.course import Course
 from app.models.course_professor import CourseProfessor
 from app.models.professor import Professor
 from app.schemas.common import Page
-from app.schemas.professor import ProfessorDetail, ProfessorListItem, CourseProfessorSummary
-from app.services.ratings import EMPTY_RATING, rating_by_course_professor, rating_by_professor
+from app.schemas.professor import ProfessorCourseSummary, ProfessorCourseTerm, ProfessorDetail, ProfessorListItem
+from app.services.ratings import EMPTY_RATING, rating_by_course, rating_by_professor
 
 router = APIRouter(prefix="/professors", tags=["professors"])
 
@@ -69,16 +69,24 @@ def get_professor_detail(
     if not professor:
         raise HTTPException(status_code=404, detail="Hoca bulunamadı")
 
-    ratings = rating_by_course_professor(db, [cp.id for cp in professor.course_professors])
+    ratings = rating_by_course(db, professor.id)
+
+    grouped: dict[int, list[CourseProfessor]] = {}
+    for cp in professor.course_professors:
+        grouped.setdefault(cp.course_id, []).append(cp)
 
     course_summaries = []
-    for cp in professor.course_professors:
-        rating = ratings.get(cp.id, EMPTY_RATING)
-        course_summaries.append(CourseProfessorSummary(
-            id=cp.id,
-            course_name=masked_name(cp.course.deleted_at, cp.course.name, DELETED_COURSE),
-            course_code=cp.course.code,
-            term=cp.term,
+    for course_id, cps in grouped.items():
+        course = cps[0].course
+        rating = ratings.get(course_id, EMPTY_RATING)
+        course_summaries.append(ProfessorCourseSummary(
+            course_id=course_id,
+            course_code=course.code,
+            course_name=masked_name(course.deleted_at, course.name, DELETED_COURSE),
+            terms=[
+                ProfessorCourseTerm(course_professor_id=cp.id, term=cp.term)
+                for cp in sorted(cps, key=lambda cp: cp.term)
+            ],
             average_teaching_score=rating.average_teaching_score,
             average_difficulty_score=rating.average_difficulty_score,
             average_fairness_score=rating.average_fairness_score,

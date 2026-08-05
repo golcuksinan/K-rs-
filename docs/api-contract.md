@@ -141,7 +141,9 @@ verir — yanıt boyutu yorum sayısından bağımsızdır. Bir ders/hoca sayfas
 
 - `?course_professor_id=` — tek ders-hoca eşleşmesinin yorumları.
 - `?professor_id=` — hocanın **tüm derslerindeki** yorumları, tek listede.
-- İkisi de verilirse ikisi birden uygulanır (AND).
+- `?course_id=` — kanonik dersin yorumları; `professor_id` ile birlikte hocanın o dersteki
+  **bütün dönemlerinin** yorumlarını verir.
+- Hepsi birlikte verilirse hepsi uygulanır (AND).
 
 Varsayılan olarak yalnızca `approved` döner. `?status=approved|pending|rejected` **admin
 token'ı ister**: eksik/yetkisiz token ile **403**, tanımsız değer **422**. Bu, `rejected`
@@ -164,6 +166,8 @@ report → **400**. Admin `PATCH /reports/{id}/status` değerleri **`resolved` |
 
 - Sadece **isim** maskelenir — `*_id` ve `course_code` her zaman gerçek değerdir.
 - İsim olmayan alan (`university_short_name`) placeholder almaz; üst kayıt silinmişse **`null`**.
+- `GET /departments` gruplama dalında fakültenin hem kendi adı hem `university_name` maskelenir
+  (ayrı kayıtlar, ayrı placeholder'lar).
 - Geçerli olduğu yerler: `GET /departments` (gruplama dalı), `GET /courses`,
   `GET /course-professors/{id}`, `GET /professors/{id}`, `GET /users/me`.
 - **Bilinçli istisna:** düz liste dalları (`?faculty_id=` gibi filtreli çağrılar) maskelemeye
@@ -213,7 +217,9 @@ başınadır**: bir uçta 429 almak diğerlerini etkilemez.
 - Arama **Türkçe harf katlamasından** geçer: `İ/I/ı/i`, `ş/s`, `ğ/g`, `ü/u`, `ö/o`, `ç/c` ayrımı
   yoktur — `"adıyaman"`, `"ADIYAMAN"` ve `"adiyaman"` aynı sonucu verir.
 - `GET /departments` **iki farklı şekil** döner: `faculty_id` verilirse düz bölüm listesi,
-  verilmezse isim bazlı **gruplanmış** liste (`{department_name, faculties[]}`).
+  verilmezse isim bazlı **gruplanmış** liste (`{department_name, faculties[]}`). Gruplu daldaki
+  fakülteler ayrıca **`university_name`** taşır — 219 üniversitede "Mühendislik Fakültesi"
+  satırları başka türlü ayırt edilemez.
 - Farklı yazılmış ama anlamca aynı bölüm isimleri **ayrı grup** kalır (normalize edilmiyor).
 - **Mevcut veri:** 219 üniversite / 2127 fakülte / 12273 bölüm. Ders + hoca verisi **yalnızca
   PAÜ** için var (139 lisans programı; 7.414 ders, 16.627 ders-bölüm bağı, 1.650 hoca,
@@ -228,6 +234,11 @@ başınadır**: bir uçta 429 almak diğerlerini etkilemez.
 - **Ders kanoniktir:** aynı ders birden çok bölümün müfredatında olsa da **tek kayıttır**
   (üniversite düzeyinde, `(kod, ad)` kimliğiyle) ve **tek yorum havuzu** taşır. Kaç bölümün
   müfredatında olduğu `department_count` alanında döner.
+- Aynı gerekçeyle `GET /professors/{id}` **ders bazlı** döner: `courses[]` girdisi bir dersi
+  temsil eder (`course_id`, `course_code`, `course_name`), dönemler içindeki
+  `terms[] = {course_professor_id, term}` dizisindedir ve ortalamalar dersin tüm dönemlerinden
+  hesaplanır. Yorumları filtrelemek için `GET /reviews?course_id=`, yorum yazmak için ise
+  bir dönemin `course_professor_id`'si kullanılır.
 - **`?department_id=` dalı** dersin o bölümdeki kaydını döner: `department_*`, `faculty_*`,
   `semesters`, `is_elective` dolu. **`search` dalında** (bölüm verilmeden) bu alanların hepsi
   **`null`**'dır — ders N bölüme ait olabildiği için tek bir değeri yok. `university_*` her

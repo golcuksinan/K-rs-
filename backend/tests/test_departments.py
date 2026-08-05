@@ -68,6 +68,25 @@ class TestListDepartmentsGrouped:
         faculty_names = [f["name"] for f in groups[0]["faculties"]]
         assert "Silinmiş Fakülte" in faculty_names
 
+    def test_grouped_search_returns_university_name(
+        self, client, valid_department, valid_faculty, valid_university
+    ):
+        resp = client.get("/departments", params={"search": valid_department.name})
+        assert resp.status_code == 200
+        groups = [g for g in resp.json()["items"] if g["department_name"] == valid_department.name]
+        faculty = next(f for f in groups[0]["faculties"] if f["id"] == valid_faculty.id)
+        assert faculty["university_name"] == valid_university.name
+
+    def test_grouped_search_shows_deleted_university_placeholder(
+        self, client, admin_headers, valid_department, valid_faculty, valid_university
+    ):
+        client.delete(f"/universities/{valid_university.id}", headers=admin_headers)
+        resp = client.get("/departments", params={"search": valid_department.name})
+        assert resp.status_code == 200
+        groups = [g for g in resp.json()["items"] if g["department_name"] == valid_department.name]
+        faculty = next(f for f in groups[0]["faculties"] if f["id"] == valid_faculty.id)
+        assert faculty["university_name"] == "Silinmiş Üniversite"
+
     def test_grouped_search_no_match_returns_empty_list(self, client, valid_department):
         resp = client.get("/departments", params={"search": "olmayan-bir-bolum-xyz"})
         assert resp.status_code == 200

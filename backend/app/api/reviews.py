@@ -156,6 +156,7 @@ def update_my_review(
 def list_reviews(
     course_professor_id: Optional[int] = None,
     professor_id: Optional[int] = None,
+    course_id: Optional[int] = None,
     status: Optional[Literal["approved", "pending", "rejected"]] = None,
     params: PageParams = Depends(pagination),
     db: Session = Depends(get_db),
@@ -168,10 +169,13 @@ def list_reviews(
 
     if course_professor_id is not None:
         query = query.filter(Review.course_professor_id == course_professor_id)
-    if professor_id is not None:
-        query = query.join(
-            CourseProfessor, CourseProfessor.id == Review.course_professor_id
-        ).filter(CourseProfessor.professor_id == professor_id)
+    # İki filtre birlikte verilebilir, join yalnızca bir kez kurulur.
+    if professor_id is not None or course_id is not None:
+        query = query.join(CourseProfessor, CourseProfessor.id == Review.course_professor_id)
+        if professor_id is not None:
+            query = query.filter(CourseProfessor.professor_id == professor_id)
+        if course_id is not None:
+            query = query.filter(CourseProfessor.course_id == course_id)
 
     return paginated(query.order_by(Review.created_at.desc()), params)
 

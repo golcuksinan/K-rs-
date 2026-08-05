@@ -17,24 +17,27 @@ class ProfessorListItem(BaseModel):
         from_attributes = True
 
 
-class CourseProfessorSummary(BaseModel):
-    id: int
-    course_name: str
-    course_code: str
+class ProfessorCourseTerm(BaseModel):
+    course_professor_id: int
     term: str
+
+
+class ProfessorCourseSummary(BaseModel):
+    # Ders kanoniktir: aynı dersin dönemleri tek girdide toplanır, puanlar ders havuzundan gelir.
+    course_id: int
+    course_code: str
+    course_name: str
+    terms: List[ProfessorCourseTerm]
     average_teaching_score: Optional[float]
     average_difficulty_score: Optional[float]
     average_fairness_score: Optional[float]
     review_count: int
 
-    class Config:
-        from_attributes = True
-
 
 class ProfessorDetail(BaseModel):
     id: int
     full_name: str
-    courses: List[CourseProfessorSummary]
+    courses: List[ProfessorCourseSummary]
 
     class Config:
         from_attributes = True

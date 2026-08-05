@@ -157,7 +157,7 @@ export default function Departments() {
                                                 className="underline"
                                             >
 
-                                                {fakulte.name}
+                                                {fakulte.university_name} — {fakulte.name}
 
                                             </Link>
 

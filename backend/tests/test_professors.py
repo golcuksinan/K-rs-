@@ -50,11 +50,36 @@ class TestGetProfessorDetail:
         assert resp.status_code == 200
         body = resp.json()
         assert len(body["courses"]) == 2
-        course_a_summary = next(c for c in body["courses"] if c["id"] == cp_a.id)
+        course_a_summary = next(c for c in body["courses"] if c["course_id"] == course_a.id)
         assert course_a_summary["average_teaching_score"] == 5
         assert course_a_summary["review_count"] == 1
-        course_b_summary = next(c for c in body["courses"] if c["id"] == cp_b.id)
+        assert course_a_summary["terms"] == [{"course_professor_id": cp_a.id, "term": "2025-Güz"}]
+        course_b_summary = next(c for c in body["courses"] if c["course_id"] == course_b.id)
         assert course_b_summary["review_count"] == 0
+
+    def test_same_course_multiple_terms_grouped_into_one_entry(
+        self, client, db_session, valid_professor, valid_department, student, second_student, make_course
+    ):
+        course = make_course(valid_department, name="Tek Ders", code="T101")
+
+        cp_guz = CourseProfessor(course_id=course.id, professor_id=valid_professor.id, term="2025-Güz")
+        cp_bahar = CourseProfessor(course_id=course.id, professor_id=valid_professor.id, term="2024-Bahar")
+        db_session.add_all([cp_guz, cp_bahar])
+        db_session.commit()
+        db_session.refresh(cp_guz)
+        db_session.refresh(cp_bahar)
+
+        _make_review(db_session, student["user"].id, cp_guz.id, "approved", teaching=5)
+        _make_review(db_session, second_student["user"].id, cp_bahar.id, "approved", teaching=3)
+
+        resp = client.get(f"/professors/{valid_professor.id}")
+        assert resp.status_code == 200
+        courses = [c for c in resp.json()["courses"] if c["course_id"] == course.id]
+        assert len(courses) == 1
+        summary = courses[0]
+        assert [t["term"] for t in summary["terms"]] == ["2024-Bahar", "2025-Güz"]
+        assert summary["review_count"] == 2
+        assert summary["average_teaching_score"] == 4
 
     def test_reviews_are_not_embedded(
         self, client, db_session, admin_headers, course_professor, valid_professor, student, second_student

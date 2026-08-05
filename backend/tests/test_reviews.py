@@ -242,6 +242,35 @@ class TestListReviews:
 
         assert client.get("/reviews", params={"professor_id": 999999}).json()["total"] == 0
 
+    def test_filter_by_course_id(
+        self, client, student_headers, course_professor, valid_course, fake_ai_service
+    ):
+        client.post("/reviews", json=review_payload(course_professor.id, comment=AI_TEST_APPROVE), headers=student_headers)
+
+        resp = client.get("/reviews", params={"course_id": valid_course.id})
+        assert resp.status_code == 200
+        assert resp.json()["total"] == 1
+
+        assert client.get("/reviews", params={"course_id": 999999}).json()["total"] == 0
+
+    def test_filter_by_course_id_and_professor_id_together(
+        self, client, student_headers, course_professor, valid_course, valid_professor, fake_ai_service
+    ):
+        client.post("/reviews", json=review_payload(course_professor.id, comment=AI_TEST_APPROVE), headers=student_headers)
+
+        resp = client.get(
+            "/reviews",
+            params={"course_id": valid_course.id, "professor_id": valid_professor.id},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["total"] == 1
+
+        karisik = client.get(
+            "/reviews",
+            params={"course_id": valid_course.id, "professor_id": 999999},
+        )
+        assert karisik.json()["total"] == 0
+
     def test_status_filter_requires_admin(self, client, student_headers):
         assert client.get("/reviews", params={"status": "rejected"}).status_code == 403
         resp = client.get("/reviews", params={"status": "rejected"}, headers=student_headers)

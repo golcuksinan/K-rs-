@@ -73,6 +73,18 @@ def rating_by_course_professor(db: Session, cp_ids: Iterable[int]) -> Dict[int, 
     return _rows_to_map(rows)
 
 
+def rating_by_course(db: Session, professor_id: int) -> Dict[int, RatingAggregate]:
+    """course_id -> RatingAggregate, tek hocanın verdiği dersler için (dönemler birleştirilir)."""
+    rows = (
+        db.query(CourseProfessor.course_id, *_aggregate_columns())
+        .join(Review, Review.course_professor_id == CourseProfessor.id)
+        .filter(CourseProfessor.professor_id == professor_id, Review.status == APPROVED)
+        .group_by(CourseProfessor.course_id)
+        .all()
+    )
+    return _rows_to_map(rows)
+
+
 def rating_by_professor(db: Session, professor_ids: Iterable[int]) -> Dict[int, RatingAggregate]:
     """professor_id -> RatingAggregate (hocanın tüm ders/dönem açılışları birleştirilir)."""
     ids = list(professor_ids)

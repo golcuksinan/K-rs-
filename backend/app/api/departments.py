@@ -5,14 +5,13 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.masking import DELETED_FACULTY, masked_name
+from app.core.masking import DELETED_FACULTY, DELETED_UNIVERSITY, masked_name
 from app.db.session import get_db
 from app.models.department import Department
 from app.models.faculty import Faculty
 from app.models.user import User
 from app.schemas.common import Page
-from app.schemas.department import DepartmentGroupResponse, DepartmentResponse, DepartmentCreate, DepartmentUpdate
-from app.schemas.faculty import FacultyResponse
+from app.schemas.department import DepartmentGroupResponse, DepartmentResponse, DepartmentCreate, DepartmentUpdate, GroupedFacultyResponse
 from app.api.common import PageParams, get_active_or_400, get_active_or_404, page, pagination, paginated, search_filter
 from app.api.deps import get_current_admin_user
 
@@ -59,7 +58,7 @@ def list_departments(
 
     departments = (
         db.query(Department)
-        .options(joinedload(Department.faculty))
+        .options(joinedload(Department.faculty).joinedload(Faculty.university))
         .filter(Department.name.in_(names), Department.deleted_at.is_(None))
         .order_by(Department.name)
         .all()
@@ -73,10 +72,13 @@ def list_departments(
         DepartmentGroupResponse(
             department_name=name,
             faculties=[
-                FacultyResponse(
+                GroupedFacultyResponse(
                     id=fac.id,
                     name=masked_name(fac.deleted_at, fac.name, DELETED_FACULTY),
                     university_id=fac.university_id,
+                    university_name=masked_name(
+                        fac.university.deleted_at, fac.university.name, DELETED_UNIVERSITY
+                    ),
                     deleted_at=fac.deleted_at,
                 )
                 for fac in facs

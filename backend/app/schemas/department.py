@@ -6,9 +6,14 @@ from pydantic import BaseModel, Field
 from app.schemas.faculty import FacultyResponse
 
 
+class GroupedFacultyResponse(FacultyResponse):
+    # 219 üniversitede aynı fakülte adı tekrarlıyor, ayırt etmek için üniversite adı da döner.
+    university_name: str
+
+
 class DepartmentGroupResponse(BaseModel):
     department_name: str
-    faculties: List[FacultyResponse]
+    faculties: List[GroupedFacultyResponse]
 
 class DepartmentResponse(BaseModel):
     id: int

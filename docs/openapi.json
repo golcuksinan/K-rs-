@@ -301,6 +301,22 @@
             }
           },
           {
+            "name": "course_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Id"
+            }
+          },
+          {
             "name": "status",
             "in": "query",
             "required": false,
@@ -2573,75 +2589,6 @@
         ],
         "title": "CourseProfessorResponse"
       },
-      "CourseProfessorSummary": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "course_name": {
-            "type": "string",
-            "title": "Course Name"
-          },
-          "course_code": {
-            "type": "string",
-            "title": "Course Code"
-          },
-          "term": {
-            "type": "string",
-            "title": "Term"
-          },
-          "average_teaching_score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Average Teaching Score"
-          },
-          "average_difficulty_score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Average Difficulty Score"
-          },
-          "average_fairness_score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Average Fairness Score"
-          },
-          "review_count": {
-            "type": "integer",
-            "title": "Review Count"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "course_name",
-          "course_code",
-          "term",
-          "average_teaching_score",
-          "average_difficulty_score",
-          "average_fairness_score",
-          "review_count"
-        ],
-        "title": "CourseProfessorSummary"
-      },
       "CourseResponse": {
         "properties": {
           "id": {
@@ -2852,7 +2799,7 @@
           },
           "faculties": {
             "items": {
-              "$ref": "#/components/schemas/FacultyResponse"
+              "$ref": "#/components/schemas/GroupedFacultyResponse"
             },
             "type": "array",
             "title": "Faculties"
@@ -3088,6 +3035,46 @@
           "email"
         ],
         "title": "ForgotPasswordRequest"
+      },
+      "GroupedFacultyResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "university_id": {
+            "type": "integer",
+            "title": "University Id"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "university_name": {
+            "type": "string",
+            "title": "University Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "university_id",
+          "university_name"
+        ],
+        "title": "GroupedFacultyResponse"
       },
       "HTTPValidationError": {
         "properties": {
@@ -3493,6 +3480,96 @@
         ],
         "title": "Page[UniversityResponse]"
       },
+      "ProfessorCourseSummary": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "course_code": {
+            "type": "string",
+            "title": "Course Code"
+          },
+          "course_name": {
+            "type": "string",
+            "title": "Course Name"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/ProfessorCourseTerm"
+            },
+            "type": "array",
+            "title": "Terms"
+          },
+          "average_teaching_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Teaching Score"
+          },
+          "average_difficulty_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Difficulty Score"
+          },
+          "average_fairness_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Fairness Score"
+          },
+          "review_count": {
+            "type": "integer",
+            "title": "Review Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "course_code",
+          "course_name",
+          "terms",
+          "average_teaching_score",
+          "average_difficulty_score",
+          "average_fairness_score",
+          "review_count"
+        ],
+        "title": "ProfessorCourseSummary"
+      },
+      "ProfessorCourseTerm": {
+        "properties": {
+          "course_professor_id": {
+            "type": "integer",
+            "title": "Course Professor Id"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_professor_id",
+          "term"
+        ],
+        "title": "ProfessorCourseTerm"
+      },
       "ProfessorDetail": {
         "properties": {
           "id": {
@@ -3505,7 +3582,7 @@
           },
           "courses": {
             "items": {
-              "$ref": "#/components/schemas/CourseProfessorSummary"
+              "$ref": "#/components/schemas/ProfessorCourseSummary"
             },
             "type": "array",
             "title": "Courses"
