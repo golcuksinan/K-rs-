@@ -9,9 +9,14 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
+from app.core.sentry import init_sentry
 from app.db import base  # noqa: F401
 from app.core.limiter import limiter, from_cloudflare, NestedRouteSlowAPIMiddleware
 from app.api import auth, reviews, reports, course_professors, professors, universities, departments, courses, users, faculties, admin_stats
+
+
+# app kurulmadan önce: entegrasyonlar ASGI uygulamasını sarmalıyor.
+init_sentry()
 
 
 @asynccontextmanager

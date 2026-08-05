@@ -90,8 +90,8 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
 
         return _undecided()
 
-    except Exception as e:
-        logger.error(f"Hugging Face Moderation Service Error: {str(e)}")
+    except Exception:
+        logger.exception("Hugging Face Moderation Service Error")
         # Hata yukarı fırlatılmaz: moderasyon servisi review yazma akışını kırmamalı,
         # karar veremediğimiz yorum insan onayına düşer.
         return _undecided()

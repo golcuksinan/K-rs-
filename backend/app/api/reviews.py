@@ -1,3 +1,4 @@
+import logging
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
@@ -18,6 +19,8 @@ from app.api.common import PageParams, get_active_or_400, pagination, paginated
 from app.api.deps import get_current_user, get_current_admin_user, get_optional_current_user
 from app.services.ai_service import moderate_review
 from app.services.metrics import Event, increment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -49,6 +52,9 @@ def _run_moderation_background(review_id: int):
         db.commit()
     except Exception:
         db.rollback()
+        # Yanıt gönderildikten sonra koşuyor: hata yutulursa yorum kimsenin haberi olmadan
+        # pending'de kalır, kullanıcıya da bir işaret gitmez.
+        logger.exception("Moderasyon sonucu yazılamadı: review_id=%s", review_id)
     finally:
         db.close()
 

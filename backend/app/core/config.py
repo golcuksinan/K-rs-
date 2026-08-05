@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     # Gönderen adresin domain'i Resend'de SPF/DKIM ile doğrulanmış olmalı.
     MAIL_FROM: str = "Kürsü <noreply@kursu.live>"
 
+    # Boş = Sentry hiç başlatılmaz (yerel/compose/test davranışı).
+    SENTRY_DSN: str = ""
+    SENTRY_ENVIRONMENT: str = "production"
+
     # Reverse proxy'lerin IP'leri, virgülle ayrılır. Boş = X-Forwarded-For'a güvenilmez.
     # ALLOWED_ORIGINS ile aynı gerekçeyle list[str] değil.
     TRUSTED_PROXY_IPS: str = ""

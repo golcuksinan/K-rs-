@@ -1,7 +1,10 @@
 import asyncio
+import logging
 
 from app.services.metrics import Event, increment
 from app.services.moderation import analyze_review_with_hf, ModerationStatus
+
+logger = logging.getLogger(__name__)
 
 _VERDICT_EVENTS = {
     ModerationStatus.APPROVED: Event.MODERATION_APPROVED,
@@ -26,6 +29,9 @@ def moderate_review(comment: str) -> str:
         decision = asyncio.run(analyze_review_with_hf(comment or ""))
     except Exception:
         increment(Event.MODERATION_FAILED)
+        # analyze_review_with_hf kendi hatalarını zaten yutuyor; buraya düşen, HF'in değil
+        # çağrı katmanının (asyncio, import, beklenmedik tip) sorunudur — sayaç bunu göstermez.
+        logger.exception("Moderasyon çağrısı başarısız")
         decision = ModerationStatus.PENDING
 
     if not isinstance(decision, ModerationStatus):
