@@ -93,7 +93,14 @@ export default function Courses() {
 
                 <p className="text-gray-600">
 
-                    Aramak istediğiniz dersin adını ya da kodunu yazın (en az {MIN_ARAMA} karakter).
+                    Aramak istediğiniz dersin adını ya da kodunu yazın (en az {MIN_ARAMA} karakter),
+                    ya da{" "}
+
+                    <Link to="/bolumler" className="underline">
+                        bölüm seçerek
+                    </Link>
+
+                    {" "}ilerleyin.
 
                 </p>
 

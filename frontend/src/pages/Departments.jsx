@@ -101,7 +101,13 @@ export default function Departments() {
 
                 <p className="text-gray-600">
 
-                    Aramak istediğiniz bölümün adını yazın.
+                    Aramak istediğiniz bölümün adını yazın, ya da{" "}
+
+                    <Link to="/universiteler" className="underline">
+                        üniversite seçerek
+                    </Link>
+
+                    {" "}ilerleyin.
 
                 </p>
 
