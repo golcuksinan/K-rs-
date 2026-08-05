@@ -7,7 +7,7 @@ export default function BackButton() {
 
     return (
 
-        <button className="underline" onClick={() => navigate(-1)}>
+        <button className="underline cursor-pointer" onClick={() => navigate(-1)}>
 
             ← Geri
 

@@ -35,6 +35,14 @@ export default function ReviewCard({ review, etiket }) {
 
         setHata("");
 
+        if (gerekce.trim().length < MIN_GEREKCE) {
+
+            setHata(`Gerekçe en az ${MIN_GEREKCE} karakter olmalı.`);
+
+            return;
+
+        }
+
         createReport({ review_id: review.id, reason: gerekce.trim() })
 
             .then(() => {
@@ -104,7 +112,7 @@ export default function ReviewCard({ review, etiket }) {
 
             {acik && (
 
-                <form onSubmit={bildir} className="mt-4 space-y-3">
+                <form onSubmit={bildir} noValidate className="mt-4 space-y-3">
 
                     <textarea
                         className="w-full border p-3 h-20"

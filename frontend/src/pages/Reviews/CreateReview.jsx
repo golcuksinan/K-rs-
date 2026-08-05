@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -6,7 +6,7 @@ import { createReview } from "../../api/reviews";
 
 import { getCourses } from "../../api/courses";
 
-import { getCourseProfessors } from "../../api/courseProfessors";
+import { getCourseProfessors, getCourseProfessor } from "../../api/courseProfessors";
 
 import parseError from "../../api/parseError";
 
@@ -53,6 +53,24 @@ export default function CreateReview() {
     const [gonderiliyor, setGonderiliyor] = useState(false);
 
     const [gonderildi, setGonderildi] = useState(false);
+
+    const [secilenEslesme, setSecilenEslesme] = useState(null);
+
+    useEffect(() => {
+
+        if (!eslesmeId) {
+
+            setSecilenEslesme(null);
+
+            return;
+
+        }
+
+        getCourseProfessor(eslesmeId)
+            .then((res) => setSecilenEslesme(res.data))
+            .catch(() => setSecilenEslesme(null));
+
+    }, [eslesmeId]);
 
     const terim = gecikmeliArama.trim();
 
@@ -153,11 +171,22 @@ export default function CreateReview() {
 
         <section className="max-w-xl mx-auto px-6 py-16">
 
-            <h1 className="heading-font text-4xl mb-8">
+            <h1 className="heading-font text-4xl mb-2">
 
                 Yorum Yap
 
             </h1>
+
+            {secilenEslesme && (
+
+                <p className="mb-8 text-gray-600">
+
+                    {secilenEslesme.course_code} — {secilenEslesme.course_name}
+                    {" · "}{secilenEslesme.professor_name} · {secilenEslesme.term}
+
+                </p>
+
+            )}
 
             {!queryParams.get("course_professor_id") && (
 

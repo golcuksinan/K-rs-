@@ -187,24 +187,29 @@ export default function Departments() {
 
                     {sayfa.items.map((bolum) => (
 
-                        <Card key={bolum.id} className="p-6 h-full">
+                        <Link
+                            key={bolum.id}
+                            to={`/dersler?department_id=${bolum.id}`}
+                            className="block h-full"
+                        >
 
-                            <h2 className="text-xl font-semibold">
+                            <Card className="p-6 h-full hover:bg-[#f5f1e8]">
 
-                                {bolum.name}
+                                <h2 className="text-xl font-semibold">
 
-                            </h2>
+                                    {bolum.name}
 
-                            <Link
-                                to={`/dersler?department_id=${bolum.id}`}
-                                className="underline text-sm"
-                            >
+                                </h2>
 
-                                Derslerini gör
+                                <span className="underline text-sm">
 
-                            </Link>
+                                    Derslerini gör
 
-                        </Card>
+                                </span>
+
+                            </Card>
+
+                        </Link>
 
                     ))}
 
