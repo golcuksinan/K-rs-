@@ -3,7 +3,9 @@ import axios from "axios";
 
 const api = axios.create({
 
-    baseURL: import.meta.env.VITE_API_URL,
+    // Boşsa vite'ın (prod'da nginx'in) /api proxy'si kullanılır; sayfayla aynı
+    // origin'e gidildiği için hem localhost'tan hem telefondan çalışır.
+    baseURL: import.meta.env.VITE_API_URL || "/api",
 
     headers:{
         "Content-Type":"application/json"
