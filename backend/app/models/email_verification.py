@@ -8,7 +8,6 @@ class EmailVerification(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email_hash = Column(String, unique=True, index=True, nullable=False)
-    email_plain = Column(String, nullable=False)
     otp_hash = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)

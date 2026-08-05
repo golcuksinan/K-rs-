@@ -48,6 +48,85 @@ class TestCreateReview:
         resp = client.post("/reviews", json=review_payload(course_professor.id), headers=headers)
         assert resp.status_code == 403, resp.text
 
+    def test_term_before_enrollment_year_rejected(
+        self, client, db_session, student_factory, valid_course, valid_professor
+    ):
+        """Dersi gerçekten aldığı doğrulanamıyor, ama dönem kayıt yılından önce olamaz."""
+        from app.models.course_professor import CourseProfessor
+
+        cp = CourseProfessor(
+            course_id=valid_course.id, professor_id=valid_professor.id, term="2015-2016 Güz"
+        )
+        db_session.add(cp)
+        db_session.commit()
+        db_session.refresh(cp)
+
+        student = student_factory(enrollment_year=2024)
+        login = client.post(
+            "/auth/login", json={"email": student["email"], "password": student["password"]}
+        )
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        resp = client.post("/reviews", json=review_payload(cp.id), headers=headers)
+        assert resp.status_code == 400
+        assert "dönem" in resp.json()["detail"].lower()
+
+    def test_term_within_study_window_accepted(
+        self, client, db_session, student_factory, valid_course, valid_professor
+    ):
+        from app.core.academic import MAX_STUDY_YEARS
+        from app.models.course_professor import CourseProfessor
+
+        enrollment_year = 2020
+        son_makul = CourseProfessor(
+            course_id=valid_course.id,
+            professor_id=valid_professor.id,
+            term=f"{enrollment_year + MAX_STUDY_YEARS}-Güz",
+        )
+        cok_ileri = CourseProfessor(
+            course_id=valid_course.id,
+            professor_id=valid_professor.id,
+            term=f"{enrollment_year + MAX_STUDY_YEARS + 1}-Güz",
+        )
+        db_session.add_all([son_makul, cok_ileri])
+        db_session.commit()
+        db_session.refresh(son_makul)
+        db_session.refresh(cok_ileri)
+
+        student = student_factory(enrollment_year=enrollment_year)
+        login = client.post(
+            "/auth/login", json={"email": student["email"], "password": student["password"]}
+        )
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        assert client.post(
+            "/reviews", json=review_payload(son_makul.id), headers=headers
+        ).status_code == 201
+        assert client.post(
+            "/reviews", json=review_payload(cok_ileri.id), headers=headers
+        ).status_code == 400
+
+    def test_unparseable_term_skips_plausibility_check(
+        self, client, db_session, student_factory, valid_course, valid_professor
+    ):
+        from app.models.course_professor import CourseProfessor
+
+        cp = CourseProfessor(
+            course_id=valid_course.id, professor_id=valid_professor.id, term="Bahar dönemi"
+        )
+        db_session.add(cp)
+        db_session.commit()
+        db_session.refresh(cp)
+
+        student = student_factory(enrollment_year=2024)
+        login = client.post(
+            "/auth/login", json={"email": student["email"], "password": student["password"]}
+        )
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        resp = client.post("/reviews", json=review_payload(cp.id), headers=headers)
+        assert resp.status_code == 201, resp.text
+
     def test_nonexistent_course_professor_returns_404(self, client, student_headers):
         resp = client.post("/reviews", json=review_payload(999999), headers=student_headers)
         assert resp.status_code == 404
@@ -69,6 +148,17 @@ class TestCreateReview:
     def test_score_out_of_range_rejected(self, client, student_headers, course_professor):
         resp = client.post(
             "/reviews", json=review_payload(course_professor.id, teaching_score=6), headers=student_headers
+        )
+        assert resp.status_code == 422
+
+    def test_comment_longer_than_moderated_length_rejected(self, client, student_headers, course_professor):
+        # Şema tavanı moderasyonun gönderdiği uzunluğu aşarsa fazlası denetimsiz yayına girer
+        from app.services.moderation import MAX_MODERATED_CHARS
+
+        resp = client.post(
+            "/reviews",
+            json=review_payload(course_professor.id, comment="a" * (MAX_MODERATED_CHARS + 1)),
+            headers=student_headers,
         )
         assert resp.status_code == 422
 
@@ -104,7 +194,11 @@ class TestCreateReview:
         review = db_session.query(Review).filter(Review.id == review_id).first()
         assert review.status == "pending"
 
-        queue = client.get("/reviews/pending", headers=admin_headers)
+        # Kuyruk eskiden yeniye sıralı; DB'de başka pending kayıt varsa yeni yorum son sayfadadır.
+        total = client.get("/reviews/pending", params={"limit": 1}, headers=admin_headers).json()["total"]
+        queue = client.get(
+            "/reviews/pending", params={"limit": 1, "offset": total - 1}, headers=admin_headers
+        )
         assert review_id in [item["id"] for item in queue.json()["items"]]
 
     def test_ai_moderation_uncertain_not_visible_publicly(
@@ -303,10 +397,14 @@ class TestListPendingReviews:
     def test_shows_pending_and_edit_requested_reviews(
         self, client, admin_headers, student_headers, course_professor
     ):
-        client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
-        resp = client.get("/reviews/pending", headers=admin_headers)
+        created = client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
+        review_id = created.json()["id"]
+
+        # DB'de başka pending kayıt olabilir; iddia bu testin yarattığı yoruma kurulur.
+        total = client.get("/reviews/pending", params={"limit": 1}, headers=admin_headers).json()["total"]
+        resp = client.get("/reviews/pending", params={"limit": 1, "offset": total - 1}, headers=admin_headers)
         assert resp.status_code == 200
-        assert resp.json()["total"] == 1
+        assert resp.json()["items"][0]["id"] == review_id
         assert resp.json()["items"][0]["status"] == "pending"
 
 

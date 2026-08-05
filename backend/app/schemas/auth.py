@@ -1,6 +1,7 @@
-from datetime import date
+from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from app.core.academic import is_plausible_enrollment_year, parse_enrollment_year_from_email
 from app.core.security import is_valid_edu_tr_email
 
 def _validate_password_complexity(v: str) -> str:
@@ -13,7 +14,10 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     department_id: int
-    enrollment_year: int = Field(description="Üniversiteye giriş yılı")
+    enrollment_year: Optional[int] = Field(
+        default=None,
+        description="Üniversiteye giriş yılı; e-postasında yıl taşıyan üniversitelerde yok sayılır",
+    )
 
     @field_validator("email")
     @classmethod
@@ -27,15 +31,20 @@ class RegisterRequest(BaseModel):
     def check_password(cls, v: str) -> str:
         return _validate_password_complexity(v)
 
-    @field_validator("enrollment_year")
-    @classmethod
-    def check_enrollment_year(cls, v: int) -> int:
-        # Gevşek sanity check (yazım hatası yakalamak için) - iş mantığı kısıtı değil,
-        # mezun/lise gibi uç durumlar henüz netleşmediği için sıkı tutulmadı.
-        current_year = date.today().year
-        if not (current_year - 15 <= v <= current_year):
+    @model_validator(mode="after")
+    def resolve_enrollment_year(self):
+        """E-posta yılı taşıyorsa beyan yok sayılır (beyan kullanıcının elinde, adres değil).
+        Deseni olmayan üniversitede beyan zorunludur ve gevşek sanity aralığından geçer."""
+        from_email = parse_enrollment_year_from_email(self.email)
+        if from_email is not None:
+            self.enrollment_year = from_email
+            return self
+
+        if self.enrollment_year is None:
+            raise ValueError("Giriş yılı gereklidir")
+        if not is_plausible_enrollment_year(self.enrollment_year):
             raise ValueError("Geçerli bir giriş yılı giriniz")
-        return v
+        return self
 
 
 class VerifyOTPRequest(BaseModel):

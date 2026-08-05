@@ -19,6 +19,10 @@ TOXIC_LABELS = {"toxic", "severe_toxic", "obscene", "threat", "insult", "identit
 REJECT_THRESHOLD = 0.70
 PENDING_THRESHOLD = 0.35
 
+# HF'e gönderilen azami uzunluk. Yorum şeması (schemas.review.MAX_COMMENT_LENGTH) bunu
+# doğrudan kullanır: daha uzun yorum kabul edilirse fazlası denetlenmeden yayına girerdi.
+MAX_MODERATED_CHARS = 1000
+
 
 def _undecided() -> ModerationStatus:
     """Moderasyonun karar üretemediği her dal buradan döner: yorum insan onayına düşer ve
@@ -52,7 +56,7 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
 
     hf_url = _normalize_hf_url(settings.HF_MODEL_URL)
     headers = {"Authorization": f"Bearer {settings.HF_API_TOKEN}"}
-    payload = {"inputs": text[:1000]}
+    payload = {"inputs": text[:MAX_MODERATED_CHARS]}
 
     try:
         async with httpx.AsyncClient() as client:
@@ -60,7 +64,9 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
                 hf_url,
                 headers=headers,
                 json=payload,
-                timeout=3.0,
+                # HF modeli boşta kalınca uykuya geçiyor; soğuk başlangıç 3 sn'yi aşıyor ve
+                # her dinlenme sonrası ilk yorumlar sessizce admin kuyruğuna birikiyordu.
+                timeout=20.0,
             )
 
         if response.status_code != 200:
@@ -73,14 +79,21 @@ async def analyze_review_with_hf(text: str) -> ModerationStatus:
         if isinstance(result, list) and len(result) > 0:
             predictions = result[0] if isinstance(result[0], list) else result
             
+            # default=None: tanınan tek bir etiket bile yoksa skor 0.0 sayılıp yorum
+            # "temiz" kabul edilirdi. Model veya etiket adları değişirse bu sessizce
+            # her yorumu onaylardı.
             max_score = max(
                 (
                     pred.get("score", 0.0)
                     for pred in predictions
-                    if pred.get("label", "").lower() in TOXIC_LABELS
+                    if isinstance(pred, dict) and pred.get("label", "").lower() in TOXIC_LABELS
                 ),
-                default=0.0,
+                default=None,
             )
+
+            if max_score is None:
+                logger.warning("HF response carries no known toxicity label")
+                return _undecided()
 
             if max_score > REJECT_THRESHOLD:
                 return ModerationStatus.REJECTED

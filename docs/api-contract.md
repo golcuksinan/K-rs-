@@ -21,7 +21,8 @@ cd backend
 
 - Base URL: dev'de `http://127.0.0.1:8000`. Prefix yok — router path'leri kökten başlar.
 - `GET /health` → `{"status": "ok"}`, **rate limit muaf**.
-- Swagger: `/docs` — token elle girilir (HTTPBearer, otomatik login formu yok).
+- Swagger: `/docs` — token elle girilir (HTTPBearer, otomatik login formu yok). `/docs`, `/redoc`
+  ve `/openapi.json` `DOCS_ENABLED`'a bağlıdır; prod'da `false`, üçü de 404 döner.
 - CORS: izinli origin'ler `ALLOWED_ORIGINS` env'inden gelir (virgülle ayrılmış, varsayılan `"*"`).
   **`allow_credentials=False`** → cookie/session yok; token'ı frontend kendisi saklar ve taşır.
 
@@ -46,6 +47,13 @@ cd backend
   kayıt olunabilir" (harita: `core/security.py` `EMAIL_DOMAIN_UNIVERSITIES`); şifre min 8 karakter + **en az 1 rakam**
   (register ve reset'te; **login'de doğrulanmaz**); OTP 6 hane, **10 dk** geçerli
   (`OTP_EXPIRE_MINUTES`), **5 yanlış deneme** sonrası kayıt silinir → baştan başlanır.
+- **`enrollment_year` opsiyoneldir ve PAÜ'de yok sayılır.** Giriş yılı e-postanın yerel kısmında
+  harflerden sonraki **ilk** iki haneden okunur (`asoyisim23@…` → 2023; aynı adın ikinci sahibinde
+  `isoyisim231@…` → 2023, sondaki ayırt edici hane yılı kaydırmaz); gönderilen değer bu kazanır,
+  hata da dönmez. Desen `core/academic.py` `EMAIL_ENROLLMENT_YEAR_PATTERNS`'te domain başına
+  tutulur; deseni olmayan bir üniversite eklenirse orada alan **zorunlu** olur (yoksa 422
+  "Giriş yılı gereklidir") ve gevşek aralık (`bugün-15 … bugün`) uygulanır. Aynı aralık
+  e-postadan okunan yıla da uygulanır: dışına düşerse okunmamış sayılır, beyana bakılır.
 - ⚠️ `verify-otp`'ye forgot-password kodu verilirse **400**:
   "Bu kod şifre sıfırlama için üretilmiş, kayıt için kullanılamaz". Kod **silinmez**, aynı kodla
   reset akışı devam edebilir.
@@ -115,9 +123,14 @@ Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek 
 4. Aynı `course_professor_id`'ye ikinci review → **400** "Bu derse zaten bir değerlendirme
    yaptınız". Geçersiz `course_professor_id` → 404. Eşleşme dursa da **dersi soft-delete
    edilmişse → 400** "Geçersiz course_id" (silinmiş derse yeni yorum yazılamaz; eski onaylı
-   yorumlar görünmeye devam eder).
+   yorumlar görünmeye devam eder). **Dönem kayıt yılına göre makul değilse → 400** "Bu dönem
+   kayıt yılınıza uymuyor": dönemin başlangıç yılı `enrollment_year` ile
+   `enrollment_year + 8` (`core/academic.py` `MAX_STUDY_YEARS`) arasında olmalı. Dersin
+   gerçekten alındığı doğrulanamıyor — kaynak yok — bu yalnızca makullük süzgeci; dönem
+   etiketinden yıl okunamıyorsa kontrol atlanır.
 5. `POST /reviews` skorları (`teaching`/`difficulty`/`fairness`) **1..5**, `comment` opsiyonel,
-   en fazla 2000 karakter.
+   en fazla **1000** karakter — moderasyonun HF'e gönderdiği azami uzunlukla aynı; daha uzun
+   yorumda fazlası denetlenmeden yayına girerdi.
 
 **Düzenleme akışı:**
 
@@ -239,6 +252,12 @@ başınadır**: bir uçta 429 almak diğerlerini etkilemez.
   `terms[] = {course_professor_id, term}` dizisindedir ve ortalamalar dersin tüm dönemlerinden
   hesaplanır. Yorumları filtrelemek için `GET /reviews?course_id=`, yorum yazmak için ise
   bir dönemin `course_professor_id`'si kullanılır.
+- **Ders ve hoca ortalamalarında bir kişi bir oydur.** Aynı kullanıcının farklı dönemlere yazdığı
+  yorumlar önce kendi aralarında ortalanır, sonra kişiler ortalanır — yorumlar listede ayrı ayrı
+  görünmeye devam eder ve `review_count` **yorum sayısıdır** (yorumlayan sayısı değil), ama
+  ortalamadaki ağırlık kullanıcı başına birdir. Dönem düzeyindeki
+  (`GET /course-professors/{id}`) ortalama bundan etkilenmez; orada kullanıcı başına tek yorum
+  zaten kısıtla garanti.
 - **`?department_id=` dalı** dersin o bölümdeki kaydını döner: `department_*`, `faculty_*`,
   `semesters`, `is_elective` dolu. **`search` dalında** (bölüm verilmeden) bu alanların hepsi
   **`null`**'dır — ders N bölüme ait olabildiği için tek bir değeri yok. `university_*` her

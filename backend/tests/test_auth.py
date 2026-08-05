@@ -137,9 +137,48 @@ class TestRegister:
         assert resp.status_code == 422
 
     def test_register_invalid_enrollment_year_rejected(self, client, valid_department):
+        # Gelecek yıl e-postadan da okunmaz (makul aralık dışı), beyana düşer ve beyan reddedilir
         payload = register_payload(valid_department.id, enrollment_year=date.today().year + 1)
         resp = client.post("/auth/register", json=payload)
         assert resp.status_code == 422
+
+    def test_enrollment_year_read_from_email_not_declaration(
+        self, client, db_session, valid_department, otp_capture
+    ):
+        """PAÜ adresinde giriş yılı harflerden sonraki ilk iki hanedir; beyan yok sayılır.
+        Sondaki ayırt edici hane (aynı adın ikinci sahibi) yılı kaydırmamalı."""
+        from app.models.email_verification import EmailVerification
+
+        gercek_yil = date.today().year - 3
+        payload = register_payload(
+            valid_department.id,
+            email=f"asoyisim{str(gercek_yil)[-2:]}{date.today().toordinal()}@posta.pau.edu.tr",
+            enrollment_year=date.today().year,
+        )
+
+        resp = client.post("/auth/register", json=payload)
+        assert resp.status_code == 200, resp.text
+
+        entry = db_session.query(EmailVerification).filter(
+            EmailVerification.email_hash == hash_email(payload["email"])
+        ).first()
+        assert entry.enrollment_year == gercek_yil
+
+    def test_register_without_enrollment_year_works_when_email_carries_it(
+        self, client, db_session, valid_department, otp_capture
+    ):
+        from app.models.email_verification import EmailVerification
+
+        payload = register_payload(valid_department.id)
+        del payload["enrollment_year"]
+
+        resp = client.post("/auth/register", json=payload)
+        assert resp.status_code == 200, resp.text
+
+        entry = db_session.query(EmailVerification).filter(
+            EmailVerification.email_hash == hash_email(payload["email"])
+        ).first()
+        assert entry.enrollment_year == date.today().year
 
     def test_register_cleans_up_previous_pending_verification_for_same_email(
         self, client, db_session, valid_department, otp_capture

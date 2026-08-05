@@ -16,10 +16,14 @@ resend.default_http_client = RequestsClient(timeout=5)
 def _send(plain_email: str, subject: str, body: str) -> bool:
     """Gönderim başarılıysa True. Hata yukarı fırlatılmaz: mail servisi kayıt/sıfırlama
     akışını kırmamalı, ama sayaç da artmamalı — gitmeyen mail 'gönderildi' sayılmaz."""
-    if not settings.RESEND_API_KEY:
-        logger.warning("RESEND_API_KEY missing, mail not sent")
+    if settings.MAIL_DEV_CONSOLE:
         print(f"[MAIL] {plain_email} -> {subject}: {body}")
         return True
+
+    if not settings.RESEND_API_KEY:
+        logger.error("RESEND_API_KEY missing, mail not sent")
+        increment(Event.MAIL_FAILED)
+        return False
 
     try:
         resend.Emails.send({

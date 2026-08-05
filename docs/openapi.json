@@ -3688,17 +3688,23 @@
             "title": "Department Id"
           },
           "enrollment_year": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Enrollment Year",
-            "description": "Üniversiteye giriş yılı"
+            "description": "Üniversiteye giriş yılı; e-postasında yıl taşıyan üniversitelerde yok sayılır"
           }
         },
         "type": "object",
         "required": [
           "email",
           "password",
-          "department_id",
-          "enrollment_year"
+          "department_id"
         ],
         "title": "RegisterRequest"
       },
@@ -3828,7 +3834,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 2000
+                "maxLength": 1000
               },
               {
                 "type": "null"
@@ -4052,7 +4058,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 2000
+                "maxLength": 1000
               },
               {
                 "type": "null"

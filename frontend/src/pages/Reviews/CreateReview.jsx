@@ -19,7 +19,7 @@ import Loading from "../../components/Loading";
 
 const MIN_ARAMA = 2;
 
-const MAX_YORUM = 2000;
+const MAX_YORUM = 1000;
 
 const SKORLAR = [1, 2, 3, 4, 5];
 
@@ -58,13 +58,8 @@ export default function CreateReview() {
 
     useEffect(() => {
 
-        if (!eslesmeId) {
-
-            setSecilenEslesme(null);
-
-            return;
-
-        }
+        // eslesmeId boşken state sıfırlanmaz, kart zaten koşulda gizlenir
+        if (!eslesmeId) return;
 
         getCourseProfessor(eslesmeId)
             .then((res) => setSecilenEslesme(res.data))
@@ -177,7 +172,7 @@ export default function CreateReview() {
 
             </h1>
 
-            {secilenEslesme && (
+            {eslesmeId && secilenEslesme && (
 
                 <p className="mb-8 text-gray-600">
 

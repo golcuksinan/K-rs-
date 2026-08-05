@@ -1,5 +1,6 @@
 """Router: app/api/reports.py (prefix /reports)"""
 from app.models.review import Review
+from app.models.course_professor import CourseProfessor
 
 
 def _create_approved_review(db_session, user_id, course_professor_id):
@@ -61,13 +62,34 @@ class TestListPendingReports:
     def test_returns_pending_reports_oldest_first(
         self, client, db_session, admin_headers, student, second_student_headers, course_professor
     ):
-        review = _create_approved_review(db_session, student["user"].id, course_professor.id)
-        client.post("/reports", json={"review_id": review.id, "reason": "sebep"}, headers=second_student_headers)
+        # (user_id, course_professor_id) tekil; ikinci yorum için ayrı bir ders-hoca kaydı gerekir.
+        other_cp = CourseProfessor(
+            course_id=course_professor.course_id,
+            professor_id=course_professor.professor_id,
+            term="2025-Bahar",
+        )
+        db_session.add(other_cp)
+        db_session.commit()
 
-        resp = client.get("/reports/pending", headers=admin_headers)
+        first_review = _create_approved_review(db_session, student["user"].id, course_professor.id)
+        second_review = _create_approved_review(db_session, student["user"].id, other_cp.id)
+        first_id = client.post(
+            "/reports", json={"review_id": first_review.id, "reason": "sebep"}, headers=second_student_headers
+        ).json()["id"]
+        second_id = client.post(
+            "/reports", json={"review_id": second_review.id, "reason": "sebep"}, headers=second_student_headers
+        ).json()["id"]
+
+        # DB'de başka pending rapor olabilir; liste eskiden yeniye sıralı olduğu için bu testin
+        # yarattıkları son sayfadadır ve iddia yalnızca onlara kurulur.
+        total = client.get("/reports/pending", params={"limit": 1}, headers=admin_headers).json()["total"]
+        resp = client.get(
+            "/reports/pending", params={"limit": 2, "offset": total - 2}, headers=admin_headers
+        )
         assert resp.status_code == 200
-        assert resp.json()["total"] == 1
-        assert resp.json()["items"][0]["status"] == "pending"
+        items = resp.json()["items"]
+        assert [item["id"] for item in items] == [first_id, second_id]
+        assert all(item["status"] == "pending" for item in items)
 
 
 class TestUpdateReportStatus:

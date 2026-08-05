@@ -34,6 +34,11 @@ app = FastAPI(
         "kurallar için `docs/api-contract.md`."
     ),
     lifespan=lifespan,
+    # Prod'da kapalı: uçların, admin imzalarının ve gövde şekillerinin kimliksiz listelenmesi
+    # saldırı yüzeyini bedavaya verir. Ekip şemayı docs/openapi.json'dan okur.
+    docs_url="/docs" if settings.DOCS_ENABLED else None,
+    redoc_url="/redoc" if settings.DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if settings.DOCS_ENABLED else None,
 )
 
 app.state.limiter = limiter

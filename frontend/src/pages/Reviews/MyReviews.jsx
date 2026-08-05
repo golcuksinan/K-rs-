@@ -14,7 +14,7 @@ import Pagination from "../../components/Pagination";
 
 const LIMIT = 10;
 
-const MAX_YORUM = 2000;
+const MAX_YORUM = 1000;
 
 const SKORLAR = [1, 2, 3, 4, 5];
 

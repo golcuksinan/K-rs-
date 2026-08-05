@@ -275,12 +275,26 @@ class TestEventStats:
     def test_failed_send_is_not_counted_as_sent(self, client, admin_headers, monkeypatch):
         from app.services import email_service
 
+        monkeypatch.setattr(email_service.settings, "MAIL_DEV_CONSOLE", False)
         monkeypatch.setattr(email_service.settings, "RESEND_API_KEY", "test-key")
 
         def _boom(*args, **kwargs):
             raise RuntimeError("bağlantı yok")
 
         monkeypatch.setattr(email_service.resend.Emails, "send", _boom)
+
+        before = _event_totals(client, admin_headers)
+        email_service.send_verification_email("ogrenci@posta.pau.edu.tr", "123456")
+        after = _event_totals(client, admin_headers)
+
+        assert after["mail.verification_sent"] == before["mail.verification_sent"]
+        assert after["mail.failed"] == before["mail.failed"] + 1
+
+    def test_missing_api_key_is_counted_as_failure(self, client, admin_headers, monkeypatch):
+        from app.services import email_service
+
+        monkeypatch.setattr(email_service.settings, "MAIL_DEV_CONSOLE", False)
+        monkeypatch.setattr(email_service.settings, "RESEND_API_KEY", "")
 
         before = _event_totals(client, admin_headers)
         email_service.send_verification_email("ogrenci@posta.pau.edu.tr", "123456")

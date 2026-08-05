@@ -83,7 +83,6 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
     otp = generate_otp()
     entry = EmailVerification(
         email_hash=email_hash,
-        email_plain=payload.email.strip().lower(),
         otp_hash=hash_otp(otp),
         hashed_password=hashed_password,
         department_id=payload.department_id,
@@ -94,7 +93,7 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
     db.commit()
 
     increment(Event.AUTH_REGISTER_STARTED)
-    send_verification_email(entry.email_plain, otp)
+    send_verification_email(payload.email.strip().lower(), otp)
     return generic_response
 
 
@@ -206,7 +205,6 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Sessio
 
     entry = EmailVerification(
         email_hash=email_hash,
-        email_plain=payload.email.strip().lower(),
         otp_hash=hash_otp(otp),
         hashed_password=user.hashed_password,  # reset onaylanana kadar mevcut hash korunuyor
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
@@ -215,7 +213,7 @@ def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Sessio
     db.commit()
 
     increment(Event.AUTH_PASSWORD_RESET_REQUESTED)
-    send_reset_email(entry.email_plain, otp)
+    send_reset_email(payload.email.strip().lower(), otp)
     return generic_response
 
 

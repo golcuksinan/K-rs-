@@ -6,6 +6,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.academic import MAX_STUDY_YEARS, parse_term_start_year
 from app.db.session import get_db, SessionLocal
 from app.models.course import Course
 from app.models.user import User
@@ -77,6 +78,14 @@ def create_review(
             status_code=403,
             detail="Yalnızca kendi üniversitenizin derslerini değerlendirebilirsiniz",
         )
+
+    # Dersi gerçekten aldığını doğrulayacak bir kaynak yok; en azından dönem kayıt yılına
+    # göre makul olmalı. Biçimi tanınmayan dönem etiketinde kontrol atlanır.
+    term_year = parse_term_start_year(course_professor.term)
+    if term_year is not None and not (
+        current_user.enrollment_year <= term_year <= current_user.enrollment_year + MAX_STUDY_YEARS
+    ):
+        raise HTTPException(status_code=400, detail="Bu dönem kayıt yılınıza uymuyor")
 
     review = Review(
         user_id=current_user.id,

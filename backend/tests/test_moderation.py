@@ -82,11 +82,10 @@ class TestModerationBands:
         assert hf_response(_preds(toxic=0.02, identity_hate=0.50)) == ModerationStatus.PENDING
 
     def test_unknown_labels_ignored(self, hf_response):
-        """TOXIC_LABELS dışındaki yüksek skorlar karara girmez."""
-        assert hf_response([{"label": "neutral", "score": 0.99}]) == ModerationStatus.APPROVED
-
-    def test_empty_predictions_are_approved(self, hf_response):
-        assert hf_response([]) == ModerationStatus.APPROVED
+        """TOXIC_LABELS dışındaki yüksek skor karara girmez; tanınan etiket kararı verir."""
+        assert hf_response(
+            [{"label": "neutral", "score": 0.99}, {"label": "toxic", "score": 0.01}]
+        ) == ModerationStatus.APPROVED
 
 
 class TestModerationFallbacks:
@@ -97,6 +96,16 @@ class TestModerationFallbacks:
     def test_missing_token_falls_back_to_pending(self, monkeypatch):
         monkeypatch.setattr(moderation.settings, "HF_API_TOKEN", "")
         assert asyncio.run(analyze_review_with_hf("bir yorum")) == ModerationStatus.PENDING
+
+    def test_no_known_label_falls_back_to_pending(self, hf_response):
+        """Model veya etiket adları değişirse karar "temiz" sayılmaz, insan onayına düşer."""
+        assert hf_response([{"label": "neutral", "score": 0.99}]) == ModerationStatus.PENDING
+
+    def test_empty_predictions_fall_back_to_pending(self, hf_response):
+        assert hf_response([]) == ModerationStatus.PENDING
+
+    def test_labelless_dict_falls_back_to_pending(self, hf_response):
+        assert hf_response([{"score": 0.99}]) == ModerationStatus.PENDING
 
     def test_non_200_falls_back_to_pending(self, hf_response):
         assert hf_response(_preds(toxic=0.01), status_code=503) == ModerationStatus.PENDING

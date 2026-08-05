@@ -46,6 +46,7 @@ from app.db.session import engine, get_db  # noqa: E402
 from app.api import reviews as reviews_module  # noqa: E402
 from app.api import auth as auth_module  # noqa: E402
 from app.core.security import hash_email, hash_password, hash_otp  # noqa: E402
+from app.services import email_service  # noqa: E402
 from app.models.email_verification import EmailVerification  # noqa: E402
 from app.core.limiter import limiter  # noqa: E402
 from app.models.enums import UserRole  # noqa: E402
@@ -136,6 +137,12 @@ def _disable_email_domain_university_check(monkeypatch):
     hepsini reddederdi. Kontrolü test eden testler auth_module üzerinden kendi haritasını yazar.
     Şema tarafındaki domain doğrulaması (is_valid_edu_tr_email) bundan etkilenmez, açık kalır."""
     monkeypatch.setattr(auth_module, "EMAIL_DOMAIN_UNIVERSITIES", {})
+
+
+@pytest.fixture(autouse=True)
+def _mail_to_console(monkeypatch):
+    """Testler gerçek Resend'e gitmesin: .env'de anahtar dolu olsa da konsol yolu açık."""
+    monkeypatch.setattr(email_service.settings, "MAIL_DEV_CONSOLE", True)
 
 
 class _NullSession:
@@ -293,11 +300,14 @@ def course_professor(db_session, valid_course, valid_professor) -> CourseProfess
 # ---------------------------------------------------------------------------
 
 def register_payload(department_id: int, **overrides) -> dict:
+    year = overrides.get("enrollment_year", date.today().year)
     payload = {
-        "email": f"{_unique('user')}@posta.pau.edu.tr",
+        # PAÜ adresinde giriş yılı harflerden sonraki ilk iki haneden okunur, beyandan değil;
+        # e-posta beyanla tutarlı üretilir ki testler ikisini birlikte doğrulayabilsin.
+        "email": f"{_unique('user' + str(year)[-2:])}@posta.pau.edu.tr",
         "password": DEFAULT_PASSWORD,
         "department_id": department_id,
-        "enrollment_year": date.today().year,
+        "enrollment_year": year,
     }
     payload.update(overrides)
     return payload
@@ -325,7 +335,9 @@ def _create_user(db_session, department_id, role=UserRole.student, password=DEFA
         is_verified=True,
         role=role,
         department_id=department_id,
-        enrollment_year=enrollment_year or date.today().year,
+        # Fixture dönemleri (2024-Güz, 2025-Güz) geçmişte; kayıt yılı bugün olsa POST /reviews
+        # dönem makullüğü kontrolüne takılırdı.
+        enrollment_year=enrollment_year or date.today().year - 2,
     )
     db_session.add(user)
     db_session.commit()
@@ -417,7 +429,6 @@ def expired_verification_factory(db_session):
         email = f"{_unique('expired')}@posta.pau.edu.tr"
         entry = EmailVerification(
             email_hash=hash_email(email),
-            email_plain=email,
             otp_hash=hash_otp(otp),
             hashed_password=hash_password(DEFAULT_PASSWORD),
             department_id=department_id,

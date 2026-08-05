@@ -27,6 +27,16 @@ def _scrub(event, hint):
     headers = event.get("request", {}).get("headers")
     if headers:
         for name in list(headers):
-            if name.lower() in ("authorization", "cookie", "cf-connecting-ip", "x-forwarded-for"):
+            # x-origin-secret olmadan CF_ORIGIN_SECRET her 500'de olayın içinde düz metin
+            # kalır; onu bilen Cloudflare katmanını (WAF, rate limiting) tamamen atlar.
+            if name.lower() in (
+                "authorization",
+                "cookie",
+                "cf-connecting-ip",
+                "x-forwarded-for",
+                "x-origin-secret",
+                "x-real-ip",
+                "true-client-ip",
+            ):
                 del headers[name]
     return event

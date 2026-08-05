@@ -3,20 +3,27 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from app.services.moderation import MAX_MODERATED_CHARS
+
+
+# Tavan, moderasyonun HF'e gönderdiği uzunlukla (moderation.MAX_MODERATED_CHARS) aynı olmak
+# zorunda: fazlası kabul edilirse kesilen kısım hiç denetlenmeden yayına girer.
+MAX_COMMENT_LENGTH = MAX_MODERATED_CHARS
+
 
 class ReviewCreate(BaseModel):
     course_professor_id: int
     teaching_score: int = Field(ge=1, le=5)
     difficulty_score: int = Field(ge=1, le=5)
     fairness_score: int = Field(ge=1, le=5)
-    comment: Optional[str] = Field(default=None, max_length=2000)
+    comment: Optional[str] = Field(default=None, max_length=MAX_COMMENT_LENGTH)
 
 
 class ReviewUpdate(BaseModel):
     teaching_score: int = Field(ge=1, le=5)
     difficulty_score: int = Field(ge=1, le=5)
     fairness_score: int = Field(ge=1, le=5)
-    comment: Optional[str] = Field(default=None, max_length=2000)
+    comment: Optional[str] = Field(default=None, max_length=MAX_COMMENT_LENGTH)
 
 
 class ReviewResponse(BaseModel):

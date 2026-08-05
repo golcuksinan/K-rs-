@@ -16,6 +16,7 @@ Snapshot yüklü değilse (boş/başka DB) tüm dosya skip edilir.
 import pytest
 
 from conftest import AI_TEST_APPROVE, _create_user, register_payload
+from app.core.academic import is_plausible_enrollment_year, parse_term_start_year
 from app.core.security import EMAIL_DOMAIN_UNIVERSITIES, tr_casefold
 from app.models.course import Course, CourseDepartment
 from app.models.course_professor import CourseProfessor
@@ -43,8 +44,10 @@ def real_data(db_session):
     if university is None:
         pytest.skip(f"Seed verisi yüklü değil: '{mapped_name}' bulunamadı")
 
+    # En yeni dönem seçilir: POST /reviews dönemin kullanıcının kayıt yılına göre makul
+    # olmasını istiyor, kayıt yılı da bu dönemden türetilir (aşağıdaki enrollment_year).
     row = (
-        db_session.query(Department.id, CourseProfessor.id, Course.id)
+        db_session.query(Department.id, CourseProfessor.id, Course.id, CourseProfessor.term)
         .join(Faculty, Department.faculty_id == Faculty.id)
         .join(CourseDepartment, CourseDepartment.department_id == Department.id)
         .join(Course, Course.id == CourseDepartment.course_id)
@@ -55,19 +58,24 @@ def real_data(db_session):
             Department.deleted_at.is_(None),
             Course.deleted_at.is_(None),
         )
-        .order_by(Department.id, Course.id, CourseProfessor.id)
+        .order_by(CourseProfessor.term.desc(), Department.id, Course.id, CourseProfessor.id)
         .first()
     )
     if row is None:
         pytest.skip(f"'{university.name}' altında hocalı ders yok")
 
-    department_id, course_professor_id, course_id = row
+    department_id, course_professor_id, course_id, term = row
+    enrollment_year = parse_term_start_year(term)
+    if enrollment_year is None or not is_plausible_enrollment_year(enrollment_year):
+        pytest.skip(f"Seed'deki en yeni dönem ('{term}') kayıt yılına çevrilemiyor")
+
     return {
         "domain": domain,
         "university": university,
         "department_id": department_id,
         "course_id": course_id,
         "course_professor_id": course_professor_id,
+        "enrollment_year": enrollment_year,
     }
 
 
@@ -84,7 +92,9 @@ class TestUctanUcaAkis:
     def test_kayit_giris_yorum_onay_zinciri(
         self, client, db_session, real_data, real_domain_check, otp_capture, fake_ai_service
     ):
-        payload = register_payload(real_data["department_id"])
+        payload = register_payload(
+            real_data["department_id"], enrollment_year=real_data["enrollment_year"]
+        )
 
         resp = client.post("/auth/register", json=payload)
         assert resp.status_code == 200, resp.text

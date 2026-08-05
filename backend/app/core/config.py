@@ -44,11 +44,16 @@ class Settings(BaseSettings):
     # Cloudflare'in Transform Rule ile eklediği gizli değer. Boş = kilit kapalı (yerel/compose).
     CF_ORIGIN_SECRET: str = ""
 
-    # Boş = mail gönderilmez, içerik stdout'a basılır (yerel/compose/test davranışı).
-    # Prod'da dolu olmak zorunda: OTP gitmezse kimse kayıt olamaz.
+    # Boş = mail gönderilmez. Prod'da dolu olmak zorunda: OTP gitmezse kimse kayıt olamaz.
     RESEND_API_KEY: str = ""
+    # OTP'yi stdout'a basar (yerel/compose). Anahtarın varlığına bağlanmıyor: prod'da anahtar
+    # düşerse akış sessizce loga OTP basmaya devam eder, logu okuyan hesap devralır.
+    MAIL_DEV_CONSOLE: bool = False
     # Gönderen adresin domain'i Resend'de SPF/DKIM ile doğrulanmış olmalı.
     MAIL_FROM: str = "Kürsü <noreply@kursu.live>"
+
+    # /docs, /redoc ve /openapi.json. Prod'da false olmalı.
+    DOCS_ENABLED: bool = True
 
     # Boş = Sentry hiç başlatılmaz (yerel/compose/test davranışı).
     SENTRY_DSN: str = ""
