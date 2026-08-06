@@ -34,7 +34,7 @@ export default function Profile() {
 
         ["Kayıt yılı", user.enrollment_year],
 
-        ["E-posta doğrulaması", user.is_verified ? "tamamlandı" : "bekliyor"],
+        ["E-posta doğrulaması", user.is_verified ? "Tamamlandı" : "bekliyor"],
 
     ];
 

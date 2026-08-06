@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
@@ -13,6 +14,7 @@ import { getDepartments } from "../../api/departments";
 import parseError from "../../api/parseError";
 
 import ErrorMessage from "../../components/Error";
+import SearchSelect from "../../components/SearchSelect";
 
 
 export default function Register() {
@@ -41,11 +43,13 @@ export default function Register() {
 
 
     // Her tuşta istek atılmaz: global limit 20/second ve dev'de StrictMode effect'i ikiye katlıyor.
+    // limit=100 (backend'in izin verdiği tavan): arama boşken de tüm üniversiteler
+    // gelsin diye mümkün olduğunca geniş çekiyoruz.
     useEffect(() => {
 
         const zamanlayici = setTimeout(() => {
 
-            getUniversities({ search: universiteAra.trim() || undefined, limit: 20 })
+            getUniversities({ search: universiteAra.trim() || undefined, limit: 100 })
 
                 .then((res) => setUniversiteler(res.data.items))
 
@@ -94,9 +98,17 @@ export default function Register() {
 
     // Alt seçimler effect'te değil burada sıfırlanır: effect gövdesinde setState
     // cascading render'a yol açıyor (react-hooks/set-state-in-effect).
-    const universiteSec = (id) => {
+    const universiteSec = (secenek) => {
 
-        setUniversiteId(id);
+        setUniversiteId(secenek ? secenek.id : "");
+
+        // secenek null demek "kullanıcı yeniden yazmaya başladı" demek; bu durumda
+        // arama metnine dokunmuyoruz, onSearchChange zaten güncelliyor.
+        if (secenek) {
+
+            setUniversiteAra(secenek.name);
+
+        }
 
         setFakulteId("");
 
@@ -193,30 +205,15 @@ export default function Register() {
                     onChange={(e) => setForm({ ...form, enrollment_year: e.target.value })}
                 />
 
-                <input
-                    className="w-full border p-3"
-                    placeholder="Üniversite ara"
-                    value={universiteAra}
-                    onChange={(e) => setUniversiteAra(e.target.value)}
+                <SearchSelect
+                    placeholder="Üniversite ara veya seç"
+                    value={universiteId ? Number(universiteId) : null}
+                    searchTerm={universiteAra}
+                    onSearchChange={setUniversiteAra}
+                    options={universiteler}
+                    onSelect={universiteSec}
+                    emptyText="Üniversite bulunamadı"
                 />
-
-                <select
-                    className="w-full border p-3"
-                    value={universiteId}
-                    onChange={(e) => universiteSec(e.target.value)}
-                >
-
-                    <option value="">Üniversite seçin</option>
-
-                    {universiteler.map((universite) => (
-
-                        <option key={universite.id} value={universite.id}>
-                            {universite.name}
-                        </option>
-
-                    ))}
-
-                </select>
 
                 <select
                     className="w-full border p-3 disabled:opacity-60"
