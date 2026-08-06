@@ -3,12 +3,15 @@ import { Outlet, useLocation } from "react-router-dom";
 import BackButton from "../components/BackButton";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { getPageBackground } from "../config/pageBackgrounds";
 
 
 export default function MainLayout(){
 
 
 const { pathname } = useLocation();
+
+const backgroundImage = getPageBackground(pathname);
 
 
 return (
@@ -22,6 +25,14 @@ overflow-hidden
 "
 
 >
+
+
+<div
+
+className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+style={{ backgroundImage: `url(${backgroundImage})` }}
+
+></div>
 
 
 <div

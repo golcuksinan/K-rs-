@@ -1,6 +1,7 @@
 import { Link, Outlet } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
+import { authBackground } from "../config/pageBackgrounds";
 
 
 export default function AuthLayout() {
@@ -8,6 +9,11 @@ export default function AuthLayout() {
     return (
 
         <div className="relative min-h-screen overflow-hidden">
+
+            <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${authBackground})` }}
+            ></div>
 
             <div className="absolute inset-0 bg-[#F8F2E8]/80"></div>
 

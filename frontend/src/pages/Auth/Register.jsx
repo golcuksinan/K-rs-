@@ -268,9 +268,12 @@ export default function Register() {
             </form>
 
             <ErrorMessage message={hata} />
-
+             <p className="mt-4 text-sm text-red-600">
+               Eğer doğrulama kodu alamazsanız noreply@kursu.live adresini izin verilen e-postalara ekleyin.
+              </p>
         </div>
 
     );
 
 }
+g
