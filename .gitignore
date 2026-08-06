@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Pytest
+.pytest_cache/
+
+# Ortam dosyaları ve sanal ortam (.env.example takipte kalır)
+.env
+.venv/
+
+# Scripts
+backend/scripts/*
+
+# Seed snapshot'ı: veri dosyası git'te tutulmuyor (disk + Drive), backend/seeds/ script'leri takipte
+backend/seeds/*.sqlite
+
+# PAÜ scraper cache ve seed_pau_all.py --resume state'i (ikisi de cwd'ye göreli oluşuyor)
+.pau_cache/
+.pau_state.json
+.pau_state.json.bak
+
+docs/deploy-plan.md
+docs/perf-plan.md
+perf/
+docker-compose.perf.yml
+
+#Vscode
+.vscode/
+.claude/
+claude/
+CLAUDE.md

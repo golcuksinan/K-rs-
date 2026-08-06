@@ -1,0 +1,27 @@
+# Çevresel değişkenler ve Sanal Ortamlar
+.env
+.venv/
+venv/
+env/
+
+# Python önbellek dosyaları
+__pycache__/
+*.py[cod]
+*.pyo
+alembic/versions/*.pyc
+
+# IDE ve Git dosyaları (İmaja sızmaması çok önemli)
+.git/
+.vscode/
+
+# Projeye özel dosyalar ve Testler
+.pau_cache/
+.pau_state.json
+.pau_state.json.bak
+scripts/
+tests/
+.pytest_cache/
+
+# Veritabanı yedekleri (Seed dosyaları)
+backend/seeds/*.sqlite3
+seeds/*.sqlite3

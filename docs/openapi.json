@@ -1,0 +1,4451 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kürsü API",
+    "description": "Anonim ders ve akademisyen değerlendirme platformunun API'si. Zarflar, akışlar, maskeleme ve hata gövdeleri gibi bu şemadan okunamayan kurallar için `docs/api-contract.md`.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register",
+        "operationId": "register_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/verify-otp": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verify Otp Endpoint",
+        "operationId": "verify_otp_endpoint_auth_verify_otp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOTPRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Forgot Password",
+        "operationId": "forgot_password_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Reset Password",
+        "operationId": "reset_password_auth_reset_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews": {
+      "post": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "Create Review",
+        "operationId": "create_review_reviews_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "List Reviews",
+        "operationId": "list_reviews_reviews_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_professor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Professor Id"
+            }
+          },
+          {
+            "name": "professor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Professor Id"
+            }
+          },
+          {
+            "name": "course_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "approved",
+                    "pending",
+                    "rejected"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ReviewResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews/me": {
+      "get": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "List My Reviews",
+        "operationId": "list_my_reviews_reviews_me_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ReviewFullResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews/{review_id}": {
+      "patch": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "Update My Review",
+        "operationId": "update_my_review_reviews__review_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewFullResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "Delete Review",
+        "operationId": "delete_review_reviews__review_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews/pending": {
+      "get": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "List Pending Reviews",
+        "operationId": "list_pending_reviews_reviews_pending_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_professor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Professor Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ReviewFullResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews/{review_id}/status": {
+      "patch": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "Update Review Status",
+        "description": "Review'un KENDİSİNİN onayı/reddi. Bekleyen edit'in kararı ayrı uçta (/edit-status);\nburada reject, edit beklese bile review'u komple yayından kaldırır.",
+        "operationId": "update_review_status_reviews__review_id__status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews/{review_id}/edit-status": {
+      "patch": {
+        "tags": [
+          "reviews"
+        ],
+        "summary": "Update Review Edit Status",
+        "description": "Bekleyen edit'in onayı/reddi. approve gölge alanları asıl alanlara kopyalar,\nreject sadece temizler; iki durumda da review.status'a dokunulmaz (approved kalır).",
+        "operationId": "update_review_edit_status_reviews__review_id__edit_status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewFullResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Create Report",
+        "operationId": "create_report_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/reports/pending": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "List Pending Reports",
+        "operationId": "list_pending_reports_reports_pending_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ReportResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/{report_id}/status": {
+      "patch": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Update Report Status",
+        "operationId": "update_report_status_reports__report_id__status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/me": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "List My Reports",
+        "operationId": "list_my_reports_reports_me_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ReportResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/course-professors": {
+      "post": {
+        "tags": [
+          "course-professors"
+        ],
+        "summary": "Create Course Professor",
+        "operationId": "create_course_professor_course_professors_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseProfessorCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseProfessorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "course-professors"
+        ],
+        "summary": "List Course Professors",
+        "operationId": "list_course_professors_course_professors_get",
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          },
+          {
+            "name": "term",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Term"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_CourseProfessorListItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/course-professors/{course_professor_id}": {
+      "get": {
+        "tags": [
+          "course-professors"
+        ],
+        "summary": "Get Course Professor Detail",
+        "operationId": "get_course_professor_detail_course_professors__course_professor_id__get",
+        "parameters": [
+          {
+            "name": "course_professor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Professor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseProfessorDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/professors": {
+      "get": {
+        "tags": [
+          "professors"
+        ],
+        "summary": "List Professors",
+        "operationId": "list_professors_professors_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Hoca adında arama",
+              "title": "Search"
+            },
+            "description": "Hoca adında arama"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ProfessorListItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/professors/{professor_id}": {
+      "get": {
+        "tags": [
+          "professors"
+        ],
+        "summary": "Get Professor Detail",
+        "operationId": "get_professor_detail_professors__professor_id__get",
+        "parameters": [
+          {
+            "name": "professor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Professor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfessorDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/universities": {
+      "get": {
+        "tags": [
+          "universities"
+        ],
+        "summary": "List Universities",
+        "operationId": "list_universities_universities_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Üniversite adı veya kısaltmasında arama",
+              "title": "Search"
+            },
+            "description": "Üniversite adı veya kısaltmasında arama"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_UniversityResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "universities"
+        ],
+        "summary": "Create University",
+        "operationId": "create_university_universities_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniversityCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniversityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/universities/{university_id}": {
+      "patch": {
+        "tags": [
+          "universities"
+        ],
+        "summary": "Update University",
+        "operationId": "update_university_universities__university_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "university_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "University Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniversityUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniversityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "universities"
+        ],
+        "summary": "Delete University",
+        "operationId": "delete_university_universities__university_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "university_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "University Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/faculties": {
+      "get": {
+        "tags": [
+          "faculties"
+        ],
+        "summary": "List Faculties",
+        "operationId": "list_faculties_faculties_get",
+        "parameters": [
+          {
+            "name": "university_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "Üniversite ID (zorunlu)",
+              "title": "University Id"
+            },
+            "description": "Üniversite ID (zorunlu)"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Fakülte adında arama",
+              "title": "Search"
+            },
+            "description": "Fakülte adında arama"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_FacultyResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "faculties"
+        ],
+        "summary": "Create Faculty",
+        "operationId": "create_faculty_faculties_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FacultyCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FacultyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/faculties/{faculty_id}": {
+      "patch": {
+        "tags": [
+          "faculties"
+        ],
+        "summary": "Update Faculty",
+        "operationId": "update_faculty_faculties__faculty_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "faculty_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Faculty Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FacultyUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FacultyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "faculties"
+        ],
+        "summary": "Delete Faculty",
+        "operationId": "delete_faculty_faculties__faculty_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "faculty_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Faculty Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/departments": {
+      "get": {
+        "tags": [
+          "departments"
+        ],
+        "summary": "List Departments",
+        "operationId": "list_departments_departments_get",
+        "parameters": [
+          {
+            "name": "faculty_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Fakülte ID (verilirse düz liste döner)",
+              "title": "Faculty Id"
+            },
+            "description": "Fakülte ID (verilirse düz liste döner)"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Bölüm adında arama",
+              "title": "Search"
+            },
+            "description": "Bölüm adında arama"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Page_DepartmentResponse_"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Page_DepartmentGroupResponse_"
+                    }
+                  ],
+                  "title": "Response List Departments Departments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "departments"
+        ],
+        "summary": "Create Department",
+        "operationId": "create_department_departments_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/departments/{department_id}": {
+      "patch": {
+        "tags": [
+          "departments"
+        ],
+        "summary": "Update Department",
+        "operationId": "update_department_departments__department_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "department_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Department Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "departments"
+        ],
+        "summary": "Delete Department",
+        "operationId": "delete_department_departments__department_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "department_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Department Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courses": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "List Courses",
+        "operationId": "list_courses_courses_get",
+        "parameters": [
+          {
+            "name": "department_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Bölüm ID (verilmezse search zorunlu)",
+              "title": "Department Id"
+            },
+            "description": "Bölüm ID (verilmezse search zorunlu)"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ders adı/kodunda arama",
+              "title": "Search"
+            },
+            "description": "Ders adı/kodunda arama"
+          },
+          {
+            "name": "is_elective",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "true=seçmeli, false=zorunlu; verilmezse ikisi de",
+              "title": "Is Elective"
+            },
+            "description": "true=seçmeli, false=zorunlu; verilmezse ikisi de"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sayfa başına kayıt",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Sayfa başına kayıt"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Atlanacak kayıt sayısı",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Atlanacak kayıt sayısı"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_CourseResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Create Course",
+        "operationId": "create_course_courses_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courses/{course_id}": {
+      "patch": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Update Course",
+        "description": "⚠️ Ders kanonik: ad/kod değişikliği dersin listelendiği TÜM bölümleri etkiler.\nBölüm bağı ve müfredat alanları dersin değil join satırının alanı, buradan düzenlenmez.",
+        "operationId": "update_course_courses__course_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "Delete Course",
+        "description": "⚠️ Etki alanı üniversite geneli: ders kaç bölümün müfredatındaysa hepsinden düşer.",
+        "operationId": "delete_course_courses__course_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Read Current User",
+        "operationId": "read_current_user_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserMeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/stats": {
+      "get": {
+        "tags": [
+          "admin-stats"
+        ],
+        "summary": "Platform Stats",
+        "operationId": "platform_stats_admin_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/admin/stats/events": {
+      "get": {
+        "tags": [
+          "admin-stats"
+        ],
+        "summary": "Event Stats",
+        "operationId": "event_stats_admin_stats_events_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "description": "Kaç günlük pencere",
+              "default": 30,
+              "title": "Days"
+            },
+            "description": "Kaç günlük pencere"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ContentStats": {
+        "properties": {
+          "universities": {
+            "type": "integer",
+            "title": "Universities"
+          },
+          "faculties": {
+            "type": "integer",
+            "title": "Faculties"
+          },
+          "departments": {
+            "type": "integer",
+            "title": "Departments"
+          },
+          "courses": {
+            "type": "integer",
+            "title": "Courses"
+          },
+          "course_departments": {
+            "type": "integer",
+            "title": "Course Departments"
+          },
+          "professors": {
+            "type": "integer",
+            "title": "Professors"
+          },
+          "course_professors": {
+            "type": "integer",
+            "title": "Course Professors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "universities",
+          "faculties",
+          "departments",
+          "courses",
+          "course_departments",
+          "professors",
+          "course_professors"
+        ],
+        "title": "ContentStats"
+      },
+      "CourseCreate": {
+        "properties": {
+          "department_id": {
+            "type": "integer",
+            "title": "Department Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "department_id",
+          "name",
+          "code"
+        ],
+        "title": "CourseCreate"
+      },
+      "CourseProfessorCreate": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "professor_id": {
+            "type": "integer",
+            "title": "Professor Id"
+          },
+          "term": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "professor_id",
+          "term"
+        ],
+        "title": "CourseProfessorCreate"
+      },
+      "CourseProfessorDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "course_name": {
+            "type": "string",
+            "title": "Course Name"
+          },
+          "course_code": {
+            "type": "string",
+            "title": "Course Code"
+          },
+          "professor_name": {
+            "type": "string",
+            "title": "Professor Name"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          },
+          "average_teaching_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Teaching Score"
+          },
+          "average_difficulty_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Difficulty Score"
+          },
+          "average_fairness_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Fairness Score"
+          },
+          "review_count": {
+            "type": "integer",
+            "title": "Review Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "course_name",
+          "course_code",
+          "professor_name",
+          "term",
+          "average_teaching_score",
+          "average_difficulty_score",
+          "average_fairness_score",
+          "review_count"
+        ],
+        "title": "CourseProfessorDetail"
+      },
+      "CourseProfessorListItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "professor_name": {
+            "type": "string",
+            "title": "Professor Name"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          },
+          "avg_teaching": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Teaching"
+          },
+          "avg_difficulty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Difficulty"
+          },
+          "avg_fairness": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Fairness"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "professor_name",
+          "term",
+          "avg_teaching",
+          "avg_difficulty",
+          "avg_fairness"
+        ],
+        "title": "CourseProfessorListItem"
+      },
+      "CourseProfessorResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "professor_id": {
+            "type": "integer",
+            "title": "Professor Id"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "course_id",
+          "professor_id",
+          "term"
+        ],
+        "title": "CourseProfessorResponse"
+      },
+      "CourseResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "professor_count": {
+            "type": "integer",
+            "title": "Professor Count"
+          },
+          "department_count": {
+            "type": "integer",
+            "title": "Department Count"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
+          },
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          },
+          "faculty_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faculty Id"
+          },
+          "faculty_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faculty Name"
+          },
+          "semesters": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semesters"
+          },
+          "is_elective": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Elective"
+          },
+          "university_id": {
+            "type": "integer",
+            "title": "University Id"
+          },
+          "university_name": {
+            "type": "string",
+            "title": "University Name"
+          },
+          "university_short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University Short Name"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "code",
+          "professor_count",
+          "department_count",
+          "university_id",
+          "university_name"
+        ],
+        "title": "CourseResponse"
+      },
+      "CourseUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "title": "CourseUpdate"
+      },
+      "DataHealthStats": {
+        "properties": {
+          "courses_without_professor": {
+            "type": "integer",
+            "title": "Courses Without Professor"
+          },
+          "course_departments_without_curriculum": {
+            "type": "integer",
+            "title": "Course Departments Without Curriculum"
+          }
+        },
+        "type": "object",
+        "required": [
+          "courses_without_professor",
+          "course_departments_without_curriculum"
+        ],
+        "title": "DataHealthStats"
+      },
+      "DepartmentCreate": {
+        "properties": {
+          "faculty_id": {
+            "type": "integer",
+            "title": "Faculty Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "faculty_id",
+          "name"
+        ],
+        "title": "DepartmentCreate"
+      },
+      "DepartmentGroupResponse": {
+        "properties": {
+          "department_name": {
+            "type": "string",
+            "title": "Department Name"
+          },
+          "faculties": {
+            "items": {
+              "$ref": "#/components/schemas/GroupedFacultyResponse"
+            },
+            "type": "array",
+            "title": "Faculties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "department_name",
+          "faculties"
+        ],
+        "title": "DepartmentGroupResponse"
+      },
+      "DepartmentResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "faculty_id": {
+            "type": "integer",
+            "title": "Faculty Id"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "faculty_id"
+        ],
+        "title": "DepartmentResponse"
+      },
+      "DepartmentUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "DepartmentUpdate"
+      },
+      "EventDayCounts": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "counts"
+        ],
+        "title": "EventDayCounts"
+      },
+      "EventStatsResponse": {
+        "properties": {
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          },
+          "start_day": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Day"
+          },
+          "end_day": {
+            "type": "string",
+            "format": "date",
+            "title": "End Day"
+          },
+          "first_recorded_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Recorded Day"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Totals"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/EventDayCounts"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "days",
+          "start_day",
+          "end_day",
+          "first_recorded_day",
+          "events",
+          "totals",
+          "series"
+        ],
+        "title": "EventStatsResponse",
+        "description": "`series` pencerenin HER günü için, `counts` bilinen HER olay için doludur\n(veri olmayan gün/olay 0) — istemci boşluk doldurmaz.\n\n`first_recorded_day` sayaçların devreye girdiği gün: ondan öncesi ölçülmedi,\n\"0\" ile \"veri yok\" bu alanla ayrılır."
+      },
+      "FacultyCreate": {
+        "properties": {
+          "university_id": {
+            "type": "integer",
+            "title": "University Id"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "university_id",
+          "name"
+        ],
+        "title": "FacultyCreate"
+      },
+      "FacultyResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "university_id": {
+            "type": "integer",
+            "title": "University Id"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "university_id"
+        ],
+        "title": "FacultyResponse"
+      },
+      "FacultyUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "FacultyUpdate"
+      },
+      "ForgotPasswordRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "ForgotPasswordRequest"
+      },
+      "GroupedFacultyResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "university_id": {
+            "type": "integer",
+            "title": "University Id"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "university_name": {
+            "type": "string",
+            "title": "University Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "university_id",
+          "university_name"
+        ],
+        "title": "GroupedFacultyResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "MessageResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "MessageResponse"
+      },
+      "ModerationStats": {
+        "properties": {
+          "reviews_total": {
+            "type": "integer",
+            "title": "Reviews Total"
+          },
+          "reviews_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Reviews By Status"
+          },
+          "reviews_with_pending_edit": {
+            "type": "integer",
+            "title": "Reviews With Pending Edit"
+          },
+          "reports_total": {
+            "type": "integer",
+            "title": "Reports Total"
+          },
+          "reports_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Reports By Status"
+          },
+          "pending_registration_verifications": {
+            "type": "integer",
+            "title": "Pending Registration Verifications"
+          },
+          "pending_password_resets": {
+            "type": "integer",
+            "title": "Pending Password Resets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reviews_total",
+          "reviews_by_status",
+          "reviews_with_pending_edit",
+          "reports_total",
+          "reports_by_status",
+          "pending_registration_verifications",
+          "pending_password_resets"
+        ],
+        "title": "ModerationStats"
+      },
+      "Page_CourseProfessorListItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CourseProfessorListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[CourseProfessorListItem]"
+      },
+      "Page_CourseResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CourseResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[CourseResponse]"
+      },
+      "Page_DepartmentGroupResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DepartmentGroupResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[DepartmentGroupResponse]"
+      },
+      "Page_DepartmentResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DepartmentResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[DepartmentResponse]"
+      },
+      "Page_FacultyResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FacultyResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[FacultyResponse]"
+      },
+      "Page_ProfessorListItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProfessorListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ProfessorListItem]"
+      },
+      "Page_ReportResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReportResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ReportResponse]"
+      },
+      "Page_ReviewFullResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewFullResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ReviewFullResponse]"
+      },
+      "Page_ReviewResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ReviewResponse]"
+      },
+      "Page_UniversityResponse_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UniversityResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[UniversityResponse]"
+      },
+      "ProfessorCourseSummary": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "course_code": {
+            "type": "string",
+            "title": "Course Code"
+          },
+          "course_name": {
+            "type": "string",
+            "title": "Course Name"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/ProfessorCourseTerm"
+            },
+            "type": "array",
+            "title": "Terms"
+          },
+          "average_teaching_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Teaching Score"
+          },
+          "average_difficulty_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Difficulty Score"
+          },
+          "average_fairness_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Fairness Score"
+          },
+          "review_count": {
+            "type": "integer",
+            "title": "Review Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "course_code",
+          "course_name",
+          "terms",
+          "average_teaching_score",
+          "average_difficulty_score",
+          "average_fairness_score",
+          "review_count"
+        ],
+        "title": "ProfessorCourseSummary"
+      },
+      "ProfessorCourseTerm": {
+        "properties": {
+          "course_professor_id": {
+            "type": "integer",
+            "title": "Course Professor Id"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_professor_id",
+          "term"
+        ],
+        "title": "ProfessorCourseTerm"
+      },
+      "ProfessorDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/ProfessorCourseSummary"
+            },
+            "type": "array",
+            "title": "Courses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "full_name",
+          "courses"
+        ],
+        "title": "ProfessorDetail"
+      },
+      "ProfessorListItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "course_count": {
+            "type": "integer",
+            "title": "Course Count"
+          },
+          "review_count": {
+            "type": "integer",
+            "title": "Review Count"
+          },
+          "average_teaching_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Teaching Score"
+          },
+          "average_difficulty_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Difficulty Score"
+          },
+          "average_fairness_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Fairness Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "full_name",
+          "course_count",
+          "review_count",
+          "average_teaching_score",
+          "average_difficulty_score",
+          "average_fairness_score"
+        ],
+        "title": "ProfessorListItem"
+      },
+      "RegisterRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Password"
+          },
+          "department_id": {
+            "type": "integer",
+            "title": "Department Id"
+          },
+          "enrollment_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enrollment Year",
+            "description": "Üniversiteye giriş yılı; e-postasında yıl taşıyan üniversitelerde yok sayılır"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "department_id"
+        ],
+        "title": "RegisterRequest"
+      },
+      "ReportCreate": {
+        "properties": {
+          "review_id": {
+            "type": "integer",
+            "title": "Review Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "review_id",
+          "reason"
+        ],
+        "title": "ReportCreate"
+      },
+      "ReportResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "review_id": {
+            "type": "integer",
+            "title": "Review Id"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "review_id",
+          "reason",
+          "status",
+          "created_at"
+        ],
+        "title": "ReportResponse"
+      },
+      "ReportStatusUpdate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "resolved",
+              "dismissed"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ReportStatusUpdate"
+      },
+      "ResetPasswordRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "otp": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Otp"
+          },
+          "new_password": {
+            "type": "string",
+            "minLength": 8,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "otp",
+          "new_password"
+        ],
+        "title": "ResetPasswordRequest"
+      },
+      "ReviewCreate": {
+        "properties": {
+          "course_professor_id": {
+            "type": "integer",
+            "title": "Course Professor Id"
+          },
+          "teaching_score": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Teaching Score"
+          },
+          "difficulty_score": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Difficulty Score"
+          },
+          "fairness_score": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Fairness Score"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_professor_id",
+          "teaching_score",
+          "difficulty_score",
+          "fairness_score"
+        ],
+        "title": "ReviewCreate"
+      },
+      "ReviewFullResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "course_professor_id": {
+            "type": "integer",
+            "title": "Course Professor Id"
+          },
+          "teaching_score": {
+            "type": "integer",
+            "title": "Teaching Score"
+          },
+          "difficulty_score": {
+            "type": "integer",
+            "title": "Difficulty Score"
+          },
+          "fairness_score": {
+            "type": "integer",
+            "title": "Fairness Score"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "has_pending_edit": {
+            "type": "boolean",
+            "title": "Has Pending Edit"
+          },
+          "pending_teaching_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Teaching Score"
+          },
+          "pending_difficulty_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Difficulty Score"
+          },
+          "pending_fairness_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Fairness Score"
+          },
+          "pending_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "course_professor_id",
+          "teaching_score",
+          "difficulty_score",
+          "fairness_score",
+          "comment",
+          "status",
+          "created_at",
+          "has_pending_edit",
+          "pending_teaching_score",
+          "pending_difficulty_score",
+          "pending_fairness_score",
+          "pending_comment"
+        ],
+        "title": "ReviewFullResponse"
+      },
+      "ReviewResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "course_professor_id": {
+            "type": "integer",
+            "title": "Course Professor Id"
+          },
+          "teaching_score": {
+            "type": "integer",
+            "title": "Teaching Score"
+          },
+          "difficulty_score": {
+            "type": "integer",
+            "title": "Difficulty Score"
+          },
+          "fairness_score": {
+            "type": "integer",
+            "title": "Fairness Score"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "course_professor_id",
+          "teaching_score",
+          "difficulty_score",
+          "fairness_score",
+          "comment",
+          "status",
+          "created_at"
+        ],
+        "title": "ReviewResponse"
+      },
+      "ReviewStatusUpdate": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ReviewStatusUpdate"
+      },
+      "ReviewUpdate": {
+        "properties": {
+          "teaching_score": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Teaching Score"
+          },
+          "difficulty_score": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Difficulty Score"
+          },
+          "fairness_score": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Fairness Score"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "teaching_score",
+          "difficulty_score",
+          "fairness_score"
+        ],
+        "title": "ReviewUpdate"
+      },
+      "Sinif": {
+        "type": "integer",
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "title": "Sinif",
+        "description": "Hesaplanan sınıf — DB'de saklanmaz, User.enrollment_year'dan anlık hesaplanır\n(bkz. app/core/academic.py). Yalnızca GET /users/me'de dönüyor: ders listelerini\nsınıfa göre süzmek bilinçli olarak reddedildi (alttan/üstten ders — §9.3)."
+      },
+      "StatsResponse": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "users": {
+            "$ref": "#/components/schemas/UserStats"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ContentStats"
+          },
+          "data_health": {
+            "$ref": "#/components/schemas/DataHealthStats"
+          },
+          "moderation": {
+            "$ref": "#/components/schemas/ModerationStats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "users",
+          "content",
+          "data_health",
+          "moderation"
+        ],
+        "title": "StatsResponse"
+      },
+      "TokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "TokenResponse"
+      },
+      "UniversityCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Name"
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "title": "City"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "city"
+        ],
+        "title": "UniversityCreate"
+      },
+      "UniversityResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Name"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "short_name",
+          "city"
+        ],
+        "title": "UniversityResponse"
+      },
+      "UniversityUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Name"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          }
+        },
+        "type": "object",
+        "title": "UniversityUpdate"
+      },
+      "UserMeResponse": {
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "current_grade": {
+            "$ref": "#/components/schemas/Sinif"
+          },
+          "enrollment_year": {
+            "type": "integer",
+            "title": "Enrollment Year"
+          },
+          "is_verified": {
+            "type": "boolean",
+            "title": "Is Verified"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "department_id": {
+            "type": "integer",
+            "title": "Department Id"
+          },
+          "department_name": {
+            "type": "string",
+            "title": "Department Name"
+          },
+          "faculty_id": {
+            "type": "integer",
+            "title": "Faculty Id"
+          },
+          "faculty_name": {
+            "type": "string",
+            "title": "Faculty Name"
+          },
+          "university_id": {
+            "type": "integer",
+            "title": "University Id"
+          },
+          "university_name": {
+            "type": "string",
+            "title": "University Name"
+          },
+          "university_short_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University Short Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "current_grade",
+          "enrollment_year",
+          "is_verified",
+          "created_at",
+          "department_id",
+          "department_name",
+          "faculty_id",
+          "faculty_name",
+          "university_id",
+          "university_name",
+          "university_short_name"
+        ],
+        "title": "UserMeResponse"
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "student",
+          "admin",
+          "mezun"
+        ],
+        "title": "UserRole"
+      },
+      "UserStats": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "verified": {
+            "type": "integer",
+            "title": "Verified"
+          },
+          "unverified": {
+            "type": "integer",
+            "title": "Unverified"
+          },
+          "by_role": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Role"
+          },
+          "by_enrollment_year": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Enrollment Year"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "verified",
+          "unverified",
+          "by_role",
+          "by_enrollment_year"
+        ],
+        "title": "UserStats",
+        "description": "⚠️ Bölüm/üniversite kırılımı bilinçli olarak YOK: tek kullanıcılı bir bölümün\nsayısı yayınlanırsa o kullanıcının yorumları kimliklendirilebilir."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VerifyOTPRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "otp": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Otp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "otp"
+        ],
+        "title": "VerifyOTPRequest"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

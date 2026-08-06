@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+
+@theme {
+
+--color-primary:#102744;
+
+--color-background:#F8F2E8;
+
+--color-card:#FFFDF8;
+
+--color-text:#102744;
+
+--font-main:"Manrope", sans-serif;
+
+}
+
+
+html,
+body,
+#root{
+
+min-height:100%;
+
+}
+
+
+body{
+
+font-family:var(--font-main);
+
+background:var(--color-background);
+
+color:var(--color-text);
+
+}
+
+
+*{
+
+box-sizing:border-box;
+
+}
+
+
+@layer components{
+
+
+.page-container{
+
+@apply max-w-[1200px] mx-auto px-6;
+
+}
+
+
+.card{
+
+@apply bg-[#fffdf8] border border-[#102744] rounded-xl p-6;
+
+}
+
+
+.primary-button{
+
+@apply bg-[#102744] text-white px-6 py-3 rounded-lg transition hover:opacity-90;
+
+}
+
+
+.secondary-button{
+
+@apply border border-[#102744] px-6 py-3 rounded-lg transition hover:bg-[#102744] hover:text-white;
+
+}
+
+
+.heading{
+
+@apply text-5xl font-bold leading-tight tracking-tight;
+
+}
+
+
+}
