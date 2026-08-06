@@ -96,7 +96,8 @@ def main():
         raise SystemExit(f"HATA: {args.file} yok.")
 
     if args.database_url:
-        url = args.database_url
+        # Heroku'nun DATABASE_URL'i postgres:// ile başlar, SQLAlchemy 2 bu şemayı tanımıyor.
+        url = args.database_url.replace("postgres://", "postgresql://", 1)
     else:
         from app.core.config import settings
 

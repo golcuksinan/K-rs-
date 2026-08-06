@@ -66,8 +66,7 @@ cd /home/amnesia/Projects/K-rs-
 heroku stack:set container --app kursu        # app zaten var, heroku-24'ten container'a alınır
 heroku git:remote --app kursu                 # heroku remote'u ekler
 heroku addons:create heroku-postgresql:essential-0 --app kursu   # DATABASE_URL'i kendi set eder
-heroku ps:type web=basic --app kursu
-heroku pg:info --app kursu                # PG sürümünü not al (dev 18.4)
+heroku pg:info --app kursu                # PG sürümünü not al (dev 18.4, Heroku 18.3)
 ```
 
 ### 2.2 Config vars
@@ -97,6 +96,8 @@ Değerlerin gerekçesi §6'da. `MAIL_FROM`'un domain'i Resend'de SPF/DKIM ile do
 
 ```bash
 git push heroku main
+heroku ps:type web=basic --app kursu       # ilk deploy'dan ÖNCE çalışmaz: formation yok
+heroku ps --app kursu                      # "web (Basic): ..." göründüğü doğrulanır
 heroku logs --tail --app kursu
 heroku releases:output --app kursu        # release phase'in alembic çıktısı
 curl https://kursu-f792d82f3244.herokuapp.com/health
@@ -134,10 +135,19 @@ Admin kullanıcısı:
 
 ```bash
 cd backend
-DATABASE_URL=$(heroku config:get DATABASE_URL --app kursu) ../.venv/bin/python scripts/make_admin.py
+env DATABASE_URL=$(heroku config:get DATABASE_URL --app kursu) \
+    EMAIL_PEPPER_KEY=$(heroku config:get EMAIL_PEPPER_KEY --app kursu) \
+    ../.venv/bin/python scripts/make_admin.py --department-id <id> --enrollment-year <yıl>
 ```
 
 `make_admin.py` imajda yok (`.dockerignore`), bu yüzden `heroku run` değil host'tan koşar.
+
+⚠️ **`EMAIL_PEPPER_KEY` mutlaka prod'unki olmalı.** Yalnızca `DATABASE_URL` geçirilirse script
+pepper'ı `backend/.env`'den, yani dev'den okur; `email_hash` = HMAC(pepper, e-posta) olduğu için
+prod kendi pepper'ıyla hesapladığında satırı bulamaz. Sonuç: doğru şifreyle bile "e-posta veya
+şifre hatalı", "şifremi unuttum" da sessizce hiçbir mail göndermez (kullanıcı sayımına karşı
+her durumda "gönderildi" der). `--department-id`/`--enrollment-year` verilmezse script'teki
+varsayılanlar yazılır, prod'da doğru olmaları tesadüfe kalır.
 
 ### 2.5 api.kursu.live
 
@@ -147,10 +157,13 @@ heroku certs:auto:enable --app kursu            # ACM, Basic dyno'da ücretsiz
 heroku domains --app kursu                      # "Cert issued" olana kadar izlenir
 ```
 
-Cloudflare'de `api` kaydı **zaten var ve turuncu bulutta**; yeni kayıt eklenmez, mevcut kayıt o
-target'a çevrilip **gri buluta** (proxy kapalı) alınır — proxy
+Cloudflare DNS'e o target'a `api` adıyla CNAME eklenir — **gri bulut** (proxy kapalı), proxy
 açıkken ACM doğrulaması takılıyor. Sertifika çıkınca kayıt turuncuya çevrilir, SSL/TLS modu
 **Full (strict)**.
+
+Zone'da `*.kursu.live` wildcard A kaydı var (park IP'si); `api.kursu.live` eklenmeden önce de
+çözülüyordu, "kayıt zaten var" sanılmasın. Spesifik CNAME wildcard'ı ezer, `*` kaydına
+dokunulmaz. `kursu.live` ve `www` de aynı park IP'sinde — onların yeri §2.7'de Pages'e geçer.
 
 ### 2.6 Origin kilidi
 
