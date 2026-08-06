@@ -326,4 +326,4 @@ sayaçları). ⚠️ İkisi de **`Page[T]` zarfı kullanmaz** — liste değil, 
 
 ## 12. Dağıtım
 
-Sözleşme dışı; `docs/deployment.md` (yerel docker) ve `docs/deploy-plan.md` (prod).
+Sözleşme dışı; `docs/deployment.md` (yerel docker + prod).

@@ -1,9 +1,29 @@
-# Yerel Docker Kurulumu
+# Deployment
 
-Backend'i Docker Compose ile ayağa kaldırma adımları. Uygulama henüz canlıya alınmadı ve bu
-kurulum **prod yolu değildir** — hedef Heroku + Cloudflare, `docs/deploy-plan.md`.
+Kürsü'nün deployment belgesi: yerel Docker kurulumu, prod deploy adımları ve ikisinin
+gerekçeleri.
 
-## Bileşenler
+Hedef mimari:
+
+```
+kursu.live / www.kursu.live   → Cloudflare Pages (statik Vite build'i)
+api.kursu.live                → Cloudflare (proxied) → Heroku container dyno → Postgres Essential-0
+```
+
+| Kalem | Seçim | Fiyat |
+|---|---|---|
+| Web dyno | Basic (Cedar) | $7 — 512 MB RAM, 1× paylaşımlı CPU, uyumaz |
+| Veritabanı | Postgres Essential-0 | $5 — 1 GB depolama, 20 bağlantı, pgbouncer yok |
+| Frontend | Cloudflare Pages | $0 |
+
+Eco dyno reddedildi (30 dk boştaysa uyur), Basic ayrıca ACM sertifikasının önkoşulu.
+
+---
+
+## 1. Yerel Docker kurulumu
+
+Bu kurulum **prod yolu değildir**; compose 5432'yi host'a açar ve `./backend:/app` bind
+mount'uyla imajın içeriğini checkout ile ezer — ikisi de bilinçli geliştirme tercihi.
 
 | Dosya | İşi |
 |---|---|
@@ -13,8 +33,6 @@ kurulum **prod yolu değildir** — hedef Heroku + Cloudflare, `docs/deploy-plan
 | `.env.example` | postgres kullanıcı/parola/db ve `API_PORT` (kök dizin) |
 | `backend/.env.example` | uygulama ayarları; compose bunu `env_file` ile yükler |
 
-## Adımlar
-
 ```bash
 cp .env.example .env                  # POSTGRES_PASSWORD doldurulur
 cp backend/.env.example backend/.env  # SECRET_KEY / EMAIL_PEPPER_KEY: openssl rand -hex 32
@@ -22,51 +40,268 @@ docker compose up -d --build
 curl http://localhost:8000/health
 ```
 
-Migration'lar konteyner açılışında otomatik koşar. Elle koşmak için:
+Migration'lar konteyner açılışında koşar; elle: `docker compose run --rm --entrypoint alembic
+api upgrade head`. Entrypoint DB'yi **beklemez**, compose'da `db` healthcheck'i örter.
+
+- **Tek worker zorunlu.** Rate limiting in-memory (Redis yok); her worker kendi sayacını tutar,
+  N worker limiti N katına çıkarır. `--scale api=N` yapılmamalı.
+- **Host'ta `postgresql.service` 5432'yi tutuyorsa** compose `db` aynı anda kalkamaz; ikisi yan
+  yana istenirse host portu `${DB_PORT:-5432}:5432` yapılır.
+- `k-rs-_pgdata` volume'ü PG16 formatında eski bir katalog kopyası taşıyor. Compose yeniden
+  kullanılacaksa `docker compose down -v` ile temiz açılır, migration'lar şemayı kurar.
+- **Mail:** `RESEND_API_KEY` boşken gönderim yapılmaz, OTP konsola düşer — yerel akış çalışır.
+- **Reverse proxy:** uvicorn düz HTTP servis eder. Önüne nginx/Caddy konursa
+  `--proxy-headers --forwarded-allow-ips=<proxy-ip>` ve `TRUSTED_PROXY_IPS` gerekir; yoksa rate
+  limit tüm istekleri proxy'nin IP'si sanar. ⚠️ Bu yalnızca nginx yolu içindir, Heroku'da
+  `TRUSTED_PROXY_IPS` **set edilmez** (§6).
+
+---
+
+## 2. Prod deploy — adımlar
+
+### 2.1 Uygulama ve veritabanı
 
 ```bash
-docker compose run --rm --entrypoint alembic api upgrade head
+cd /home/amnesia/Projects/K-rs-
+heroku stack:set container --app kursu        # app zaten var, heroku-24'ten container'a alınır
+heroku git:remote --app kursu                 # heroku remote'u ekler
+heroku addons:create heroku-postgresql:essential-0 --app kursu   # DATABASE_URL'i kendi set eder
+heroku ps:type web=basic --app kursu
+heroku pg:info --app kursu                # PG sürümünü not al (dev 18.4)
 ```
 
-⚠️ Entrypoint DB'nin hazır olmasını **beklemez**; compose'da bunu `db` servisinin healthcheck'i
-örter. Compose dışında çalıştırılıyorsa DB önce ayakta olmalı.
+### 2.2 Config vars
 
-## Kararlar ve tuzaklar
-
-- **Tek worker zorunlu.** Rate limiting in-memory (Redis yok) — her uvicorn worker'ı kendi
-  sayacını tutar, N worker limiti N katına çıkarır. `CMD`'de `--workers` verilmedi (varsayılan 1).
-  `docker compose up --scale api=N` **yapılmamalı**; ölçekleme önce paylaşımlı bir limiter
-  backend'i gerektirir.
-- **Değişkenlerin tek sahibi vardır.** Kök `.env` yalnızca postgres ve port değişkenlerini taşır;
-  uygulama ayarları `backend/.env`'dedir ve compose'a `env_file` ile girer. Tek istisna
-  `DATABASE_URL`: compose'da üretilir ve `env_file`'daki değeri ezer, çünkü konteyner içinde host
-  `localhost` değil `db`'dir. Aynı anahtarı iki dosyaya yazma — ayrışırlar.
-- **`EMAIL_PEPPER_KEY` rotate edilmez.** Değişirse tüm `users.email_hash` değerleri geçersiz olur,
-  mevcut kullanıcılar giriş yapamaz. `SECRET_KEY`'den farklı bir değer olmalı.
-- **Bu compose prod'a kopyalanmaz.** 5432 host'a açık ve `./backend:/app` bind mount'u imajın
-  içeriğini host'taki checkout ile eziyor; ikisi de bilinçli yerel geliştirme tercihi.
-- **Seed imaja dahil değil.** `backend/scripts/` hem `.gitignore`'da hem `.dockerignore`'da.
-- **E-posta gönderimi yok.** `app/services/email_service.py` hâlâ `print()` stub'ı — OTP kodları
-  konteyner loglarına düşer. Bu yüzden `.env.example`'a uydurma SMTP anahtarları konmadı.
-- **`/docs` (Swagger) açık.** MVP için bilinçli; kapatmak gerekirse
-  `FastAPI(docs_url=None, redoc_url=None)`.
-- **Havuz:** `DB_POOL_SIZE=10 + DB_MAX_OVERFLOW=20` → aynı anda 30 sorgu; yereldeki tavanı
-  postgres'in `max_connections`'ı (varsayılan 100) belirler. ⚠️ Yönetilen bir DB'de bu sayı
-  plandan gelir ve **küçültülmesi** gerekir — Heroku değerleri `docs/deploy-plan.md`'de.
-- **TLS ve reverse proxy kapsam dışı.** `api` konteyneri düz HTTP servis eder. Önüne nginx/Caddy
-  konacaksa uvicorn'a `--proxy-headers --forwarded-allow-ips=<proxy-ip>` eklenir ve
-  `TRUSTED_PROXY_IPS` set edilir; yoksa rate limit tüm istekleri proxy'nin IP'si sanar.
-  ⚠️ Bu tavsiye **yalnızca nginx yolu içindir**, Heroku'ya taşınmaz (`docs/deploy-plan.md` §4.5).
-- ⚠️ **Rate limit kampüs NAT'ında patlar.** Limitler IP başına; kampüs wifi'sinden gelen herkes
-  tek çıkış IP'si paylaşırsa ortak kotaya girer ve içeriden 429 yer. Canlıya çıkmadan
-  çözülmeli — problem, çözüm ve uygulama sırası `docs/deploy-plan.md`'de.
-
-## Kurulum sonrası
+⚠️ `CF_ORIGIN_SECRET` **bu adımda verilmez**. Dolu olduğu an kilit devreye girer ve
+`X-Origin-Secret` başlığı olmayan her istek 403 alır; Transform Rule henüz yokken bu "her
+istek" demektir. §2.6'da açılır.
 
 ```bash
-docker compose exec db psql -U kursu -d kursu_db -c "select count(*) from universities;"
-docker compose logs -f api
+heroku config:set --app kursu \
+  SECRET_KEY=$(openssl rand -hex 32) \
+  EMAIL_PEPPER_KEY=$(openssl rand -hex 32) \
+  RUN_MIGRATIONS=0 \
+  DOCS_ENABLED=false \
+  DB_POOL_SIZE=4 DB_MAX_OVERFLOW=8 DB_POOL_TIMEOUT=5 THREADPOOL_TOKENS=6 \
+  UVICORN_LIMIT_CONCURRENCY=32 \
+  ALLOWED_ORIGINS=https://kursu.live,https://www.kursu.live \
+  HF_API_TOKEN=<hf token> \
+  RESEND_API_KEY=<re_ ile başlayan anahtar> \
+  MAIL_FROM='Kürsü <noreply@kursu.live>' \
+  SENTRY_DSN=<dsn> SENTRY_ENVIRONMENT=production
 ```
 
-Admin kullanıcısı `scripts/make_admin.py` ile açılır — script imajda olmadığı için host'tan
-`DATABASE_URL` verilerek çalıştırılır.
+Değerlerin gerekçesi §6'da. `MAIL_FROM`'un domain'i Resend'de SPF/DKIM ile doğrulanmış olmalı.
+
+### 2.3 İlk deploy
+
+```bash
+git push heroku main
+heroku logs --tail --app kursu
+heroku releases:output --app kursu        # release phase'in alembic çıktısı
+curl https://kursu-f792d82f3244.herokuapp.com/health
+```
+
+Build → release phase (`alembic upgrade head`, `heroku.yml`) → dyno. `RUN_MIGRATIONS=0` web
+dyno'da tekrarı kapatır; tekrarlarsa bir migration hatası crash-loop'a döner.
+
+⚠️ **İlk push kırılırsa bakılacak ilk yer `pg_trgm`.** Migration `ca37a91e7b75` extension'ı
+kuruyor, Heroku eklentileri `heroku_ext` şemasına zorluyor. Migration bunu çalışma anında
+yokluyor (şema varsa `WITH SCHEMA heroku_ext`) ama Heroku'ya karşı doğrulanmadı.
+
+### 2.4 Katalog verisi ve admin
+
+Şema boş gelir; katalog (219 üniversite / 2127 fakülte / 12273 bölüm + PAÜ ders/hoca)
+snapshot'tan yüklenir. Migration'dan **sonra**, tablolar boşken:
+
+```bash
+cd backend
+../.venv/bin/python seeds/load_snapshot.py \
+  --database-url $(heroku config:get DATABASE_URL --app kursu) --dry-run
+# özet doğruysa --dry-run kaldırılır
+```
+
+`pg_dump | heroku pg:psql` yerine bu tercih edilir: snapshot yalnızca katalog tablolarını taşır
+(`users`, `email_verifications`, `reviews`, `reports` yok), alembic head'ini doğrular, kolonları
+ada göre eşler ve sonda sequence'leri `max(id)+1`'e çeker. Dump yolunda sequence'ler dev DB'nin
+değerinde kalır ve ilk insert'ler duplicate key yer.
+
+⚠️ **Şema her değiştiğinde snapshot yeniden dökülmeli** (`seeds/dump_snapshot.py --force`),
+yoksa `load_snapshot.py` head kontrolüne takılır ve prod'un ilk veri yüklemesi başarısız olur.
+Snapshot dosyası `.gitignore`'da, temiz bir clone'da yok.
+
+Admin kullanıcısı:
+
+```bash
+cd backend
+DATABASE_URL=$(heroku config:get DATABASE_URL --app kursu) ../.venv/bin/python scripts/make_admin.py
+```
+
+`make_admin.py` imajda yok (`.dockerignore`), bu yüzden `heroku run` değil host'tan koşar.
+
+### 2.5 api.kursu.live
+
+```bash
+heroku domains:add api.kursu.live --app kursu   # verdiği DNS target'ı yazar
+heroku certs:auto:enable --app kursu            # ACM, Basic dyno'da ücretsiz
+heroku domains --app kursu                      # "Cert issued" olana kadar izlenir
+```
+
+Cloudflare'de `api` kaydı **zaten var ve turuncu bulutta**; yeni kayıt eklenmez, mevcut kayıt o
+target'a çevrilip **gri buluta** (proxy kapalı) alınır — proxy
+açıkken ACM doğrulaması takılıyor. Sertifika çıkınca kayıt turuncuya çevrilir, SSL/TLS modu
+**Full (strict)**.
+
+### 2.6 Origin kilidi
+
+`*.herokuapp.com` kapatılamıyor (Cedar'da IP allowlist yok) ve Cloudflare'i atlıyor; güven
+çapası bu yüzden peer IP'de değil gizli başlıkta. Trafik artık CF'den geçtiğine göre:
+
+1. `openssl rand -hex 32` ile bir sır üret.
+2. Cloudflare → `kursu.live` → Rules → Transform Rules → Modify Request Header → statik
+   `X-Origin-Secret` = o değer, kural `api.kursu.live` hostname'ine uygulanır.
+3. `heroku config:set CF_ORIGIN_SECRET=<değer> --app kursu`
+
+Sıra budur; tersi olursa aradaki sürede API tamamen 403 verir.
+
+```bash
+curl -i https://api.kursu.live/universities             # 200
+curl -i https://kursu-f792d82f3244.herokuapp.com/universities    # 403
+```
+
+`/health` kilitten muaf (`main.py`), Heroku'nun kendi kontrolü için.
+
+### 2.7 Frontend — Cloudflare Pages
+
+Cloudflare → Workers & Pages → Create → Pages → GitHub repo'su:
+
+| Ayar | Değer |
+|---|---|
+| Kök dizin | `frontend` |
+| Build komutu | `npm run build` |
+| Çıktı dizini | `dist` |
+| Env değişkeni | `VITE_API_URL=https://api.kursu.live` |
+
+`VITE_API_URL` build anında bundle'a gömülür, sonradan değiştirilirse yeniden build gerekir —
+adım bu yüzden §2.5'ten sonra. Boş bırakılırsa `axios.js` `/api`'ye düşer; Pages'te o yolu
+taşıyacak bir proxy katmanı yok, tam adres şart.
+
+Build bitince Custom domains → `kursu.live` ve `www.kursu.live`; Pages DNS kayıtlarını kendi
+kurar. SPA fallback için `frontend/public/_redirects` repoda (`/* /index.html 200`) — onsuz
+`BrowserRouter` yollarında sayfa yenilendiğinde 404 gelir.
+
+---
+
+## 3. Doğrulama
+
+- Release phase migration'ı gerçekten koştu mu: `heroku releases:output` çıktısında alembic
+  logu. ENTRYPOINT argümanı yutulsaydı adım başarılı görünüp hiçbir şey yapmazdı.
+- Origin kilidi devrede mi: §2.6'daki iki `curl` (200 / 403).
+- Uçtan uca kayıt: gerçek e-posta → OTP maili → doğrulama → giriş.
+- Yorum yaz → `pending` → HF moderasyonu sonucu değiştiriyor mu.
+- Admin paneline giriş.
+- İlk yedek: `heroku pg:backups:capture --app kursu` (Essential'da otomatik rollback yok).
+
+Heroku belgelerinden alınan, koda karşı doğrulanamayan varsayımlar: `USER kursu` (uid 1000) ile
+konteyner çalıştırma kuralının uyumu, ACM'in gri bulut gereksinimi, Essential-0'ın 20 bağlantı /
+1 GB rakamları.
+
+---
+
+## 4. Deploy'u bloke etmeyen Cloudflare kuralları
+
+Kampüs NAT'ı probleminin kenar tarafındaki çözümü; site ayağa kalktıktan sonra eklenir.
+
+**Rate Limiting Rule → Managed Challenge** (`/auth/*`, arama uçları). Aynı IP arkasında botu
+insandan ayıran tek ücretsiz sinyal CF'nin bot tespiti. Meşru kullanıcı challenge'ı sessizce
+geçer, script geçemez; ayrım IP'de olmadığı için NAT sorun olmaktan çıkar. Kullanıcıya bulmaca
+gösteren CAPTCHA reddedildi, Managed Challenge bulmaca göstermez.
+
+**Cache Rule → public okuma uçları, TTL 30-60 sn.** ⏸️ Ertelendi: ölçüm okuma uçlarında
+0.5 CPU'da 66–140 rps buldu, kapasite gerekçesi düştü. Karşı taraftaki risk durmaya devam
+ediyor — `Authorization` başlıklı istek önbelleğe **girmemeli** (aynı uçlar admin'e pending
+yorumları döner) ve free plan'da auth'a göre cache key ücretli, kalan yol elle path kuralı.
+Eklenirse query string allowlist'i (`page`, `size`, `q`, `sort`) şart, yoksa `?x=1` ile
+atlanır.
+
+---
+
+## 5. Operasyon
+
+```bash
+heroku pg:backups:capture --app kursu     # Essential'da rollback/follower yok, manuel
+heroku pg:backups:download --app kursu
+heroku logs --tail --app kursu
+```
+
+**Kapasite (2026-08-04 ölçümü, 0.5 CPU / 512 MB):** okuma uçları 66–140 rps, 1.0 CPU'da ölçek
+neredeyse doğrusal (2.06×). Tavanı CPU belirliyor, RAM değil — yük altında bellek 78 MB'de
+kaldı, CPU kotanın tamamına yapıştı. En pahalı tek iş bcrypt. 44 bin review + index'lerle DB
+38 MB, Essential-0'ın 1 GB'ına uzak.
+
+**Olay anında tepki:** limitler env'de, rebuild'siz daraltılır; CF'de tek IP/ASN elle
+bloklanabilir (kill switch). Uygulama katmanında, NAT arkasındaki ucuz ve **başarılı** istekleri
+meşru kullanıcıdan ayırmanın ücretsiz yolu yok — kalan artık, challenge'ı geçen headless
+tarayıcı. Bu ölçekte kabul edildi.
+
+---
+
+## 6. Config var referansı
+
+Prod'da set edilenler ve gerekçeleri (varsayılanlar `backend/app/core/config.py`):
+
+| Değişken | Prod değeri | Neden |
+|---|---|---|
+| `SECRET_KEY` | rastgele 32 bayt | JWT imzası |
+| `EMAIL_PEPPER_KEY` | rastgele 32 bayt | `email_hash` HMAC'ı. `SECRET_KEY`'den **farklı** olmalı ve **asla rotate edilmez** — değişirse tüm kullanıcılar giriş yapamaz |
+| `RUN_MIGRATIONS` | `0` | Release phase zaten koşuyor; web dyno'da tekrarı crash-loop riski |
+| `DOCS_ENABLED` | `false` | Varsayılan `true`; açık kalırsa `/docs`, `/redoc`, `/openapi.json` admin imzaları dahil kimliksiz listelenir |
+| `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` / `DB_POOL_TIMEOUT` | `4` / `8` / `5` | Essential-0'ın toplam 20 bağlantısı var, pgbouncer yok |
+| `THREADPOOL_TOKENS` | `6` | Sync uçlar anyio threadpool'unda koşar, her handler tepede 2 bağlantı tutabilir: 2 × token ≤ pool + overflow |
+| `UVICORN_LIMIT_CONCURRENCY` | `32` | Uçuştaki istek tavanı. Tavansız kalınca aşırı yükte havuz tükeniyor ve istekler 503 yerine 500 alıyor |
+| `ALLOWED_ORIGINS` | Pages domainleri | Virgülle ayrılmış düz string, JSON dizisi değil |
+| `HF_API_TOKEN` | HF token'ı | Boşsa istek kırılmaz ama **her** yorum `pending`'de kalır |
+| `RESEND_API_KEY` | `re_…` | Boşsa mail gitmez (`mail.failed` artar), kimse kayıt olamaz |
+| `MAIL_FROM` | `Kürsü <noreply@kursu.live>` | Domain Resend'de doğrulanmış olmalı |
+| `SENTRY_DSN` / `SENTRY_ENVIRONMENT` | dsn / `production` | Boş DSN = Sentry hiç başlatılmaz |
+| `CF_ORIGIN_SECRET` | Transform Rule'daki değer | **En son** set edilir (§2.6) |
+
+Prod'da **set edilmeyenler**:
+
+- `MAIL_DEV_CONSOLE` — `true` olursa OTP'ler `heroku logs`'a düşer, logu okuyan hesap devralır.
+- `TRUSTED_PROXY_IPS` — Heroku'da `request.client.host` her zaman router'ın dokümante edilmeyen
+  iç adresi; `client_ip()` CF yolunda `cf-connecting-ip`'yi gizli başlığa güvenerek okur.
+  Set edilirse yanlış çapaya güvenilmiş olur. (Kendi sunucuna/nginx'e dönülürse tam tersi:
+  ayarlanmadan proxy arkasına geçilmemeli, yoksa limitler tek global kovaya çöker.)
+
+⚠️ Kilit açılana kadar (§2.3–§2.6 arası) rate limit anahtarı Heroku router'ının IP'sine düşer,
+yani tüm trafik tek kovada olur. O pencereyi uzatma; başka etkisi yok.
+
+---
+
+## 7. Bilinen riskler
+
+**Mail M365 kutusunda sessizce kaybolabilir.** 2026-08-05 provasında `@posta.pau.edu.tr`
+adresine giden ilk mail hiçbir klasörde bulunamadı (inbox, Junk, Other, karantina boş), sonraki
+testler doğrudan inbox'a düştü ve neden bulunamadı. Elenen adaylar, tekrar denenmesin diye:
+DMARC eksikliği (kayıt en baştan vardı), safe senders (eklenip çıkarıldı, ikisinde de geldi),
+domain warmup (bu hacimde oluşmaz), tenant allow-list (kimseyle görüşülmedi). Gönderici tarafta
+eksik yok: harici Gmail'e SPF/DKIM/DMARC üçü de PASS.
+
+⚠️ Resend'deki `delivered` ve SMTP'nin `250 Queued mail for delivery` yanıtı **teşhis için
+kullanılamaz** — ikisi de yalnızca M365'in mesajı kabul ettiğini söyler, hangi klasöre koyduğunu
+değil. Erken uyarının gerçek göstergesi mail domaini başına "OTP gönderildi / OTP doğrulandı"
+oranı; çok üniversiteye açılırken `services/metrics.py`'ye eklenir, MVP'de gerekmez.
+
+**Moderasyon timeout'u 20 sn.** Ücretsiz HF katmanında model boşta kalınca uykuya geçiyor ve ilk
+yorum `httpx.ReadTimeout` ile `pending`'de kalıyordu. Task arka planda koştuğu için kullanıcı
+beklemez, ama threadpool token'ını 20 sn'ye kadar tutabilir — `THREADPOOL_TOKENS=6` ile aynı
+anda 6 soğuk moderasyon diğer sync uçları bekletir. Yük altında ilk bakılacak yer burası.
+
+**Dyno günde en az bir kez restart olur** ve dosya sistemi ephemeral; in-memory rate limit
+sayaçları sıfırlanır. Kabul ediliyor, ağır işi kenar yapıyor (§4).
+
+**`requirements.txt`'te `starlette` ve `anyio` doğrudan bağımlılık olmadıkları hâlde pinli:**
+`core/limiter.py:NestedRouteSlowAPIMiddleware` FastAPI/Starlette iç yapısına, `main.py` lifespan'i
+`anyio.to_thread.current_default_thread_limiter()` iç API'sine dayanıyor. Sessizce sürüm
+atlarlarsa ilk kırılacak yerler orası.
