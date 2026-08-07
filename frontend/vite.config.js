@@ -13,7 +13,7 @@ proxy: {
 "/api": {
 target: "[http://127.0.0.1:8000](http://127.0.0.1:8000)",
 changeOrigin: true,
-rewrite: (yol) => yol.replace(/^/api/""),
+rewrite: (yol) => yol.replace(/^\/api/,""),
 },
 },
 },
