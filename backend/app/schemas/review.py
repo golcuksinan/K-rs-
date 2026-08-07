@@ -43,7 +43,14 @@ class ReviewResponse(BaseModel):
 
 # Yalnızca review'un sahibine ve admin'e döner; gölge alanlar edit'in öncesi/sonrası
 # karşılaştırılabilsin diye taşınır, public ReviewResponse'ta bulunmaz.
+# Eşleşme özeti (ders/hoca/dönem) de burada: public listeler zaten bir dersin ya da hocanın
+# sayfasında gösteriliyor, "Yorumlarım" ve moderasyon kuyruğu ise bağlamsız — orada
+# course_professor_id tek başına hangi yorum olduğunu söylemiyor.
 class ReviewFullResponse(ReviewResponse):
+    course_name: str
+    course_code: str
+    professor_name: str
+    term: str
     has_pending_edit: bool
     pending_teaching_score: Optional[int]
     pending_difficulty_score: Optional[int]

@@ -127,7 +127,12 @@ Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek 
    kayıt yılınıza uymuyor": dönemin başlangıç yılı `enrollment_year` ile
    `enrollment_year + 8` (`core/academic.py` `MAX_STUDY_YEARS`) arasında olmalı. Dersin
    gerçekten alındığı doğrulanamıyor — kaynak yok — bu yalnızca makullük süzgeci; dönem
-   etiketinden yıl okunamıyorsa kontrol atlanır.
+   etiketinden yıl okunamıyorsa kontrol atlanır. **Ders kullanıcının üniversitesinde değilse
+   → 403** "Yalnızca kendi üniversitenizin derslerini değerlendirebilirsiniz"; aynı
+   üniversitede ama **kullanıcının bölümünün müfredatında değilse → 403** "Bu ders bölümünüzün
+   müfredatında değil" (`course_departments`). Ortak/servis dersleri birden çok bölüme bağlı
+   olduğu için bu süzgece takılmaz; müfredata bağlanmamış ders ise kimse tarafından
+   yorumlanamaz.
 5. `POST /reviews` skorları (`teaching`/`difficulty`/`fairness`) **1..5**, `comment` opsiyonel,
    en fazla **1000** karakter — moderasyonun HF'e gönderdiği azami uzunlukla aynı; daha uzun
    yorumda fazlası denetlenmeden yayına girerdi.
@@ -147,6 +152,11 @@ Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek 
     iki durumda da `status`'a dokunulmaz (review `approved` kalır).
 - `pending_*` ve `has_pending_edit` alanları sadece `GET /reviews/me` ve `GET /reviews/pending`
   yanıtlarında (`ReviewFullResponse`) döner; public `GET /reviews`'ta yoktur.
+- `ReviewFullResponse` ayrıca eşleşme özetini taşır: `course_name`, `course_code`,
+  `professor_name`, `term`. Bu iki liste bağlamsız gösterildiği için (`course_professor_id`
+  tek başına hangi ders olduğunu söylemiyor) ek istek gerekmesin diye eklendi; public
+  `GET /reviews` zaten bir ders/hoca sayfasında çağrıldığından orada yoktur. Ders
+  soft-delete edilmişse `course_name` "Silinmiş Ders" olur, `course_code` gerçek değerdir.
 
 **Yorum okumanın tek yolu `GET /reviews`'tur.** Detay uçları (`GET /course-professors/{id}`,
 `GET /professors/{id}`) yorum listesi **döndürmez**, yalnızca ortalamaları ve `review_count`'u

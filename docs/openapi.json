@@ -3894,6 +3894,22 @@
             "format": "date-time",
             "title": "Created At"
           },
+          "course_name": {
+            "type": "string",
+            "title": "Course Name"
+          },
+          "course_code": {
+            "type": "string",
+            "title": "Course Code"
+          },
+          "professor_name": {
+            "type": "string",
+            "title": "Professor Name"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term"
+          },
           "has_pending_edit": {
             "type": "boolean",
             "title": "Has Pending Edit"
@@ -3953,6 +3969,10 @@
           "comment",
           "status",
           "created_at",
+          "course_name",
+          "course_code",
+          "professor_name",
+          "term",
           "has_pending_edit",
           "pending_teaching_score",
           "pending_difficulty_score",

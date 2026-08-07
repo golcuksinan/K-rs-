@@ -48,6 +48,51 @@ class TestCreateReview:
         resp = client.post("/reviews", json=review_payload(course_professor.id), headers=headers)
         assert resp.status_code == 403, resp.text
 
+    def test_course_outside_own_department_is_403(
+        self, client, db_session, student_headers, valid_faculty, valid_professor, make_course
+    ):
+        """Aynı üniversite yetmiyor: ders kullanıcının bölümünün müfredatında da olmalı."""
+        from conftest import _unique
+        from app.models.course_professor import CourseProfessor
+        from app.models.department import Department
+
+        other_department = Department(faculty_id=valid_faculty.id, name=_unique("Diğer Bölüm"))
+        db_session.add(other_department)
+        db_session.commit()
+
+        other_course = make_course(other_department)
+        cp = CourseProfessor(
+            course_id=other_course.id, professor_id=valid_professor.id, term="2025-Güz"
+        )
+        db_session.add(cp)
+        db_session.commit()
+
+        resp = client.post("/reviews", json=review_payload(cp.id), headers=student_headers)
+        assert resp.status_code == 403, resp.text
+
+    def test_course_shared_by_two_departments_is_allowed(
+        self, client, db_session, student_headers, valid_department, valid_faculty, course_professor
+    ):
+        """Ortak ders: başka bir bölüme de bağlı olması kendi bölümünün hakkını düşürmez."""
+        from conftest import _unique
+        from app.models.course import CourseDepartment
+        from app.models.department import Department
+
+        other_department = Department(faculty_id=valid_faculty.id, name=_unique("Diğer Bölüm"))
+        db_session.add(other_department)
+        db_session.flush()
+        db_session.add(
+            CourseDepartment(
+                course_id=course_professor.course_id, department_id=other_department.id
+            )
+        )
+        db_session.commit()
+
+        resp = client.post(
+            "/reviews", json=review_payload(course_professor.id), headers=student_headers
+        )
+        assert resp.status_code == 201, resp.text
+
     def test_term_before_enrollment_year_rejected(
         self, client, db_session, student_factory, valid_course, valid_professor
     ):
@@ -407,6 +452,18 @@ class TestListPendingReviews:
         assert resp.json()["items"][0]["id"] == review_id
         assert resp.json()["items"][0]["status"] == "pending"
 
+    def test_queue_items_carry_course_professor_summary(
+        self, client, admin_headers, student_headers, course_professor, valid_course
+    ):
+        created = client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
+
+        total = client.get("/reviews/pending", params={"limit": 1}, headers=admin_headers).json()["total"]
+        resp = client.get("/reviews/pending", params={"limit": 1, "offset": total - 1}, headers=admin_headers)
+        item = resp.json()["items"][0]
+        assert item["id"] == created.json()["id"]
+        assert item["course_name"] == valid_course.name
+        assert item["term"] == course_professor.term
+
 
 class TestUpdateReviewStatus:
     def test_requires_admin(self, client, student_headers, db_session, course_professor):
@@ -532,6 +589,31 @@ class TestListMyReviews:
 
         other_resp = client.get("/reviews/me", headers=second_student_headers)
         assert other_resp.json()["items"] == []
+
+    def test_items_carry_course_professor_summary(
+        self, client, student_headers, course_professor, valid_course, valid_professor
+    ):
+        client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
+
+        item = client.get("/reviews/me", headers=student_headers).json()["items"][0]
+        assert item["course_name"] == valid_course.name
+        assert item["course_code"] == valid_course.code
+        assert item["professor_name"] == valid_professor.full_name
+        assert item["term"] == course_professor.term
+
+    def test_deleted_course_name_is_masked(
+        self, client, db_session, student_headers, course_professor, valid_course
+    ):
+        from sqlalchemy import func
+        from app.core.masking import DELETED_COURSE
+
+        client.post("/reviews", json=review_payload(course_professor.id), headers=student_headers)
+        valid_course.deleted_at = func.now()
+        db_session.commit()
+
+        item = client.get("/reviews/me", headers=student_headers).json()["items"][0]
+        assert item["course_name"] == DELETED_COURSE
+        assert item["course_code"] == valid_course.code
 
 
 class TestUpdateMyReview:

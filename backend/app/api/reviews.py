@@ -4,11 +4,12 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.academic import MAX_STUDY_YEARS, parse_term_start_year
+from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db, SessionLocal
-from app.models.course import Course
+from app.models.course import Course, CourseDepartment
 from app.models.user import User
 from app.models.review import Review
 from app.models.report import Report
@@ -16,7 +17,7 @@ from app.models.course_professor import CourseProfessor
 from app.models.enums import UserRole
 from app.schemas.common import Page
 from app.schemas.review import ReviewCreate, ReviewResponse, ReviewStatusUpdate, ReviewFullResponse, ReviewUpdate
-from app.api.common import PageParams, get_active_or_400, pagination, paginated
+from app.api.common import PageParams, get_active_or_400, page, paginate, paginated, pagination
 from app.api.deps import get_current_user, get_current_admin_user, get_optional_current_user
 from app.services.ai_service import moderate_review
 from app.services.metrics import Event, increment
@@ -24,6 +25,35 @@ from app.services.metrics import Event, increment
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
+
+# Liste uçlarında N+1 olmasın diye eşleşme zinciri tek sorguda çekilir.
+_CP_LOAD = (
+    joinedload(Review.course_professor).joinedload(CourseProfessor.course),
+    joinedload(Review.course_professor).joinedload(CourseProfessor.professor),
+)
+
+
+def _full_response(review: Review) -> ReviewFullResponse:
+    cp = review.course_professor
+    return ReviewFullResponse(
+        id=review.id,
+        course_professor_id=review.course_professor_id,
+        teaching_score=review.teaching_score,
+        difficulty_score=review.difficulty_score,
+        fairness_score=review.fairness_score,
+        comment=review.comment,
+        status=review.status,
+        created_at=review.created_at,
+        course_name=masked_name(cp.course.deleted_at, cp.course.name, DELETED_COURSE),
+        course_code=cp.course.code,
+        professor_name=cp.professor.full_name,
+        term=cp.term,
+        has_pending_edit=review.has_pending_edit,
+        pending_teaching_score=review.pending_teaching_score,
+        pending_difficulty_score=review.pending_difficulty_score,
+        pending_fairness_score=review.pending_fairness_score,
+        pending_comment=review.pending_comment,
+    )
 
 
 def _run_moderation_background(review_id: int):
@@ -79,6 +109,16 @@ def create_review(
             detail="Yalnızca kendi üniversitenizin derslerini değerlendirebilirsiniz",
         )
 
+    in_curriculum = db.query(CourseDepartment).filter(
+        CourseDepartment.course_id == course.id,
+        CourseDepartment.department_id == current_user.department_id,
+    ).first()
+    if not in_curriculum:
+        raise HTTPException(
+            status_code=403,
+            detail="Bu ders bölümünüzün müfredatında değil",
+        )
+
     # Dersi gerçekten aldığını doğrulayacak bir kaynak yok; en azından dönem kayıt yılına
     # göre makul olmalı. Biçimi tanınmayan dönem etiketinde kontrol atlanır.
     term_year = parse_term_start_year(course_professor.term)
@@ -120,10 +160,12 @@ def list_my_reviews(
 ):
     query = (
         db.query(Review)
+        .options(*_CP_LOAD)
         .filter(Review.user_id == current_user.id)
         .order_by(Review.created_at.desc())
     )
-    return paginated(query, params)
+    reviews, total = paginate(query, params)
+    return page([_full_response(review) for review in reviews], total, params)
 
 @router.patch("/{review_id}", response_model=ReviewFullResponse)
 def update_my_review(
@@ -164,7 +206,7 @@ def update_my_review(
         background_tasks.add_task(_run_moderation_background, review.id)
 
     db.refresh(review)
-    return review
+    return _full_response(review)
 
 
 @router.get("", response_model=Page[ReviewResponse])
@@ -202,14 +244,15 @@ def list_pending_reviews(
     admin: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Review).filter(
+    query = db.query(Review).options(*_CP_LOAD).filter(
         or_(Review.status == "pending", Review.has_pending_edit == True)  # noqa: E712
     )
 
     if course_professor_id is not None:
         query = query.filter(Review.course_professor_id == course_professor_id)
 
-    return paginated(query.order_by(Review.created_at.asc()), params)
+    reviews, total = paginate(query.order_by(Review.created_at.asc()), params)
+    return page([_full_response(review) for review in reviews], total, params)
 
 
 @router.patch("/{review_id}/status", response_model=ReviewResponse)
@@ -271,7 +314,7 @@ def update_review_edit_status(
         Event.REVIEW_EDIT_APPROVED if payload.status == "approved" else Event.REVIEW_EDIT_REJECTED
     )
     db.refresh(review)
-    return review
+    return _full_response(review)
 
 @router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_review(

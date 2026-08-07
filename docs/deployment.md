@@ -242,10 +242,14 @@ atlanır.
 ## 5. Operasyon
 
 ```bash
-heroku pg:backups:capture --app kursu     # Essential'da rollback/follower yok, manuel
+heroku pg:backups:capture --app kursu     # rollback/follower yok, indirilebilir dump elle alınır
 heroku pg:backups:download --app kursu
 heroku logs --tail --app kursu
 ```
+
+Essential-0'da continuous protection açık (fiziksel, sürekli) ama noktaya geri sarma yok
+(`Rollback: Unsupported`). `pg:backups:capture` bunun yerine geçmez, yanında durur: indirilip
+saklanabilen tek kopya o.
 
 **Kapasite (2026-08-04 ölçümü, 0.5 CPU / 512 MB):** okuma uçları 66–140 rps, 1.0 CPU'da ölçek
 neredeyse doğrusal (2.06×). Tavanı CPU belirliyor, RAM değil — yük altında bellek 78 MB'de
