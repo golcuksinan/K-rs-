@@ -189,16 +189,32 @@ export default function MyReviews() {
             <div className="space-y-6">
 
                 {sayfa.items.map((yorum) => (
-
                     <Card key={yorum.id} className="p-6">
 
-                        <p className="text-sm text-gray-600">
+    <div className="mb-4">
+        <h2 className="text-xl font-semibold text-[#102744]">
+            {yorum.course_name ?? "Unknown Course"}
+        </h2>
 
-                            {DURUM[yorum.status] ?? yorum.status}
+        <p className="text-sm text-gray-600">
+            {yorum.course_code ?? ""}
+        </p>
 
-                            {yorum.has_pending_edit && " · değişiklik onay bekliyor"}
+        <p className="text-sm text-gray-600">
+            {yorum.professor_name ?? ""}
+        </p>
 
-                        </p>
+        <p className="text-sm text-gray-500">
+            {yorum.term ?? ""}
+        </p>
+    </div>
+
+    <p className="text-sm text-gray-600">
+        {DURUM[yorum.status] ?? yorum.status}
+        {yorum.has_pending_edit && " · değişiklik onay bekliyor"}
+    </p>
+                    
+
 
                         <p className="mt-2 text-sm">
 

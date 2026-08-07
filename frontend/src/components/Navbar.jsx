@@ -13,6 +13,7 @@ export default function Navbar() {
 
     const [open, setOpen] = useState(false);
 
+
     const baglantilar = [
 
         ["/hocalar", "Hocalar"],
@@ -25,11 +26,13 @@ export default function Navbar() {
 
     ];
 
+
     if (user) {
 
         baglantilar.push(["/yorumlarim", "Yorumlarım"]);
 
     }
+
 
     if (user?.role === "admin") {
 
@@ -37,29 +40,53 @@ export default function Navbar() {
 
     }
 
+
     return (
 
         <header className="max-w-[1200px] mx-auto px-6 py-6">
 
             <div className="flex justify-between items-center">
 
-                <Link to="/" className="text-3xl font-bold">
 
-                   <img src={logo} alt="KÜRSÜ" className="h-10 w-auto" />
+                <Link 
+                    to="/" 
+                    className="flex items-center gap-3"
+                >
 
-                    </Link>
+                    <img 
+                        src={logo} 
+                        alt="KÜRSÜ logo" 
+                        className="h-10 w-auto"
+                    />
 
-                <button className="md:hidden text-2xl" onClick={() => setOpen(!open)}>
 
+                    <span className="text-3xl font-bold text-[#102744]">
+                        KÜRSÜ
+                    </span>
+
+
+                </Link>
+
+
+
+                <button 
+                    className="md:hidden text-2xl" 
+                    onClick={() => setOpen(!open)}
+                >
                     ☰
-
                 </button>
+
+
 
                 <nav className="hidden md:flex gap-8 items-center">
 
+
                     {baglantilar.map(([yol, etiket]) => (
 
-                        <Link key={yol} to={yol}>
+                        <Link 
+                            key={yol} 
+                            to={yol}
+                        >
 
                             {etiket}
 
@@ -67,17 +94,26 @@ export default function Navbar() {
 
                     ))}
 
+
+
                     {user ? (
 
                         <>
 
-                            <Link to="/profil" className="border px-5 py-2">
+                            <Link 
+                                to="/profil" 
+                                className="border px-5 py-2"
+                            >
 
                                 Profil
 
                             </Link>
 
-                            <button onClick={logout} className="bg-[#102744] text-white px-5 py-2">
+
+                            <button 
+                                onClick={logout} 
+                                className="bg-[#102744] text-white px-5 py-2"
+                            >
 
                                 Çıkış
 
@@ -89,13 +125,20 @@ export default function Navbar() {
 
                         <>
 
-                            <Link to="/giris" className="border px-5 py-2">
+                            <Link 
+                                to="/giris" 
+                                className="border px-5 py-2"
+                            >
 
                                 Giriş
 
                             </Link>
 
-                            <Link to="/kayit" className="bg-[#102744] text-white px-5 py-2">
+
+                            <Link 
+                                to="/kayit" 
+                                className="bg-[#102744] text-white px-5 py-2"
+                            >
 
                                 Kayıt
 
@@ -105,17 +148,26 @@ export default function Navbar() {
 
                     )}
 
+
                 </nav>
 
+
             </div>
+
+
 
             {open && (
 
                 <div className="md:hidden mt-6 flex flex-col gap-5 border-t pt-5">
 
+
                     {baglantilar.map(([yol, etiket]) => (
 
-                        <Link key={yol} to={yol} onClick={() => setOpen(false)}>
+                        <Link 
+                            key={yol} 
+                            to={yol} 
+                            onClick={() => setOpen(false)}
+                        >
 
                             {etiket}
 
@@ -123,17 +175,25 @@ export default function Navbar() {
 
                     ))}
 
+
                     {user ? (
 
                         <>
 
-                            <Link to="/profil" onClick={() => setOpen(false)}>
+                            <Link 
+                                to="/profil" 
+                                onClick={() => setOpen(false)}
+                            >
 
                                 Profil
 
                             </Link>
 
-                            <button className="text-left" onClick={logout}>
+
+                            <button 
+                                className="text-left" 
+                                onClick={logout}
+                            >
 
                                 Çıkış
 
@@ -145,13 +205,20 @@ export default function Navbar() {
 
                         <>
 
-                            <Link to="/giris" onClick={() => setOpen(false)}>
+                            <Link 
+                                to="/giris" 
+                                onClick={() => setOpen(false)}
+                            >
 
                                 Giriş
 
                             </Link>
 
-                            <Link to="/kayit" onClick={() => setOpen(false)}>
+
+                            <Link 
+                                to="/kayit" 
+                                onClick={() => setOpen(false)}
+                            >
 
                                 Kayıt
 
@@ -164,6 +231,7 @@ export default function Navbar() {
                 </div>
 
             )}
+
 
         </header>
 
