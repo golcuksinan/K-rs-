@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 
 import { AuthContext } from "../context/auth-context";
 
+import logo from "../assets/backgrounds/logo.png";
+
 
 export default function Navbar() {
 
@@ -43,9 +45,9 @@ export default function Navbar() {
 
                 <Link to="/" className="text-3xl font-bold">
 
-                    KÜRSÜ
+                   <img src={logo} alt="KÜRSÜ" className="h-10 w-auto" />
 
-                </Link>
+                    </Link>
 
                 <button className="md:hidden text-2xl" onClick={() => setOpen(!open)}>
 

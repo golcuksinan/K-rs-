@@ -29,7 +29,7 @@ overflow-hidden
 
 <div
 
-className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+className="absolute inset-0 bg-cover bg-bottom bg-no-repeat"
 style={{ backgroundImage: `url(${backgroundImage})` }}
 
 ></div>
@@ -40,7 +40,7 @@ style={{ backgroundImage: `url(${backgroundImage})` }}
 className="
 absolute
 inset-0
-bg-[#F8F2E8]/80
+bg-[#F8F2E8]/10
 "
 
 ></div>
