@@ -118,6 +118,8 @@ Silme hep **soft-delete**'tir (`deleted_at`), kayıt fiziksel olarak durur. Tek 
    arka planda çalışır.
 2. Sonuç `approved` / `rejected` / `pending` olur. Ortadaki belirsizlik bandı (0.35–0.70)
    `pending`'de bırakır → insan (admin) onayı bekler.
+   `AI_MODERATION_ENABLED=false` iken arka plan moderasyonu hiç çalışmaz: her yorum admin
+   kararına kadar `pending` kalır, durum kendiliğinden değişmez.
 3. **Push/WebSocket yok** — frontend polling yapar: `GET /reviews/me`
    (`created_at` **azalan** → yeni review `items[0]`), dönen `id` ile eşleştirilir.
 4. Aynı `course_professor_id`'ye ikinci review → **400** "Bu derse zaten bir değerlendirme

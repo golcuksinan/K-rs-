@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     EMAIL_PEPPER_KEY: str  # JWT SECRET_KEY'den tamamen farklı olmalı, asla rotate edilmemeli
     OTP_EXPIRE_MINUTES: int = 10
+    # false = arka plan moderasyonu hiç çalışmaz, her yorum admin kararına kadar pending kalır.
+    AI_MODERATION_ENABLED: bool = True
     HF_API_TOKEN: str = ""
     HF_MODEL_URL: str = "https://router.huggingface.co/hf-inference/models/unitary/toxic-bert"
     DB_POOL_SIZE: int = 10

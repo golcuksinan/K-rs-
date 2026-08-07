@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.academic import MAX_STUDY_YEARS, parse_term_start_year
+from app.core.config import settings
 from app.core.masking import DELETED_COURSE, masked_name
 from app.db.session import get_db, SessionLocal
 from app.models.course import Course, CourseDepartment
@@ -54,6 +55,12 @@ def _full_response(review: Review) -> ReviewFullResponse:
         pending_fairness_score=review.pending_fairness_score,
         pending_comment=review.pending_comment,
     )
+
+
+def _schedule_moderation(background_tasks: BackgroundTasks, review_id: int):
+    # Bayrak kapalıyken hiç sıraya alınmaz: yorum pending'de kalır, kararı admin verir.
+    if settings.AI_MODERATION_ENABLED:
+        background_tasks.add_task(_run_moderation_background, review_id)
 
 
 def _run_moderation_background(review_id: int):
@@ -149,7 +156,7 @@ def create_review(
     db.refresh(review)
     increment(Event.REVIEW_CREATED)
     # review.status model default'u "pending" — AI moderasyonu arka planda çalışıp güncelleyecek
-    background_tasks.add_task(_run_moderation_background, review.id)
+    _schedule_moderation(background_tasks, review.id)
     return review
 
 @router.get("/me", response_model=Page[ReviewFullResponse])
@@ -203,7 +210,7 @@ def update_my_review(
         review.pending_fairness_score = None
         review.pending_comment = None
         db.commit()
-        background_tasks.add_task(_run_moderation_background, review.id)
+        _schedule_moderation(background_tasks, review.id)
 
     db.refresh(review)
     return _full_response(review)

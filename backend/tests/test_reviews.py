@@ -217,6 +217,21 @@ class TestCreateReview:
         review = db_session.query(Review).filter(Review.id == review_id).first()
         assert review.status == "approved"
 
+    def test_moderation_disabled_keeps_review_pending(
+        self, client, db_session, student_headers, course_professor, fake_ai_service, monkeypatch
+    ):
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "AI_MODERATION_ENABLED", False)
+
+        resp = client.post(
+            "/reviews", json=review_payload(course_professor.id, comment=AI_TEST_APPROVE), headers=student_headers
+        )
+        review_id = resp.json()["id"]
+
+        from app.models.review import Review
+        review = db_session.query(Review).filter(Review.id == review_id).first()
+        assert review.status == "pending"
+
     def test_ai_moderation_rejects(self, client, db_session, student_headers, course_professor, fake_ai_service):
         resp = client.post(
             "/reviews", json=review_payload(course_professor.id, comment=AI_TEST_REJECT), headers=student_headers
