@@ -38,3 +38,10 @@ Aşağıda platformun temel varlık-ilişki diyagramı (ERD) yer almaktadır. Di
 ## Lisans
 
 Bu proje eğitim amaçlı bir üniversite topluluğu projesidir. Lisans bilgisi için `LICENSE` dosyasına bakınız.
+
+## Kullanım uyarısı
+
+Bu yazılım gerçek akademisyen adlarıyla işletilmek üzere tasarlanmamıştır. Depo hiçbir katalog
+verisi ve veri toplayan araç içermez; veriyi sisteme giren taraf tamamen kendi iradesiyle
+girmektedir. Kurulumu işleten taraf, girdiği veriden ve kullanıcıların yazdığı içerikten KVKK
+ve 5651 sayılı kanun anlamında tek başına sorumludur.
