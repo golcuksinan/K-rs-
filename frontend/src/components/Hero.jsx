@@ -131,6 +131,29 @@ anonim değerlendirme platformudur.
 
 
 
+<p
+
+className="
+mt-6
+rounded-lg
+border
+border-amber-300
+bg-amber-50
+px-4
+py-3
+text-sm
+text-amber-900
+"
+
+>
+
+Demo sürümü — akademisyen isimleri gerçek değildir,
+örnek veriyle üretilmiştir.
+
+</p>
+
+
+
 <div
 
 className="
